@@ -6,4 +6,9 @@ db:
     port: "5432"
     dbname: "postgres"
     sslmode: "disable"
-    password: "qwe230405180405"
+    password: "-"
+
+twilio:
+    account_sid: "-"
+    auth_token: "-"
+    from: "+1234567890"
