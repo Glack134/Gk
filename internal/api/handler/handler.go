@@ -23,5 +23,30 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		auth.POST("/sign-in", h.signIn)
 	}
 
+	chat := router.Group("/chat")
+	{
+		chat.POST("/create", h.createChat)
+		chat.GET("/:id", h.getChat)
+		chat.POST("/add-participant", h.addParticipant)
+	}
+
+	message := router.Group("/message")
+	{
+		message.POST("/send", h.sendMessage)
+		message.PUT("/edit", h.editMessage)
+		message.DELETE("/:id", h.deleteMessage)
+	}
+
+	payment := router.Group("/payment")
+	{
+		payment.POST("/create", h.createPayment)
+		payment.GET("/:id/status", h.getPaymentStatus)
+	}
+
+	notification := router.Group("/notification")
+	{
+		notification.POST("/send", h.sendNotification)
+		notification.GET("/:id", h.getNotifications)
+	}
 	return router
 }

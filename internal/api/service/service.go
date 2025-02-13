@@ -3,10 +3,10 @@ package service
 import "github.com/polyk005/message/internal/api/repository"
 
 type Authorization interface {
-	SendVerificationCode(phone string) error
-	VerifyCode(phone, code string) bool
-	SignUp(phone, code string) error
-	SignIn(phone, code string) error
+	SendVerificationCode(identifier string) error
+	VerifyCode(identifier, code string) bool
+	SignUp(identifier, code string) error
+	SignIn(identifier, code string) error
 }
 
 type Service struct {

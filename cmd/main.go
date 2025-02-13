@@ -34,8 +34,14 @@ func main() {
 		logrus.Fatalf("failed to initialize db: %s", err.Error())
 	}
 
+	smsService := service.NewSMSService(
+		viper.GetString("twilio.account_sid"),
+		viper.GetString("twilio.auth_token"),
+		viper.GetString("twilio.from"),
+	)
+
 	repos := repository.NewRepository(db)
-	services := service.NewService(repos)
+	services := service.NewService(repos, smsService)
 	handlers := handler.NewHandler(services)
 
 	srv := new(internal.Server)
