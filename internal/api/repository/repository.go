@@ -29,12 +29,19 @@ type Payment interface {
 	GetPaymentStatus(paymentID string) (string, error)
 }
 
+type Subscription interface {
+	CreateSubscription(userID int, plan string) (int, error)
+	GetSubscription(userID int) (map[string]interface{}, error)
+	CancelSubscription(subscriptionID int) error
+}
+
 type Repository struct {
-	Authorization
-	Chat
-	Message
-	Notification
-	Payment
+	Authorization Authorization
+	Chat          *ChatRepository
+	Message       *MessageRepository
+	Notification  *NotificationRepository
+	Payment       *PaymentRepository
+	Subscription  *SubscriptionRepository
 }
 
 func NewRepository(db *sqlx.DB) *Repository {
@@ -44,5 +51,6 @@ func NewRepository(db *sqlx.DB) *Repository {
 		Message:       NewMessageRepository(db.DB),
 		Notification:  NewNotificationRepository(db.DB),
 		Payment:       NewPaymentRepository(db.DB),
+		Subscription:  NewSubscriptionRepository(db.DB),
 	}
 }

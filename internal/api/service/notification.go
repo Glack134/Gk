@@ -3,10 +3,10 @@ package service
 import "github.com/polyk005/message/internal/api/repository"
 
 type NotificationService struct {
-	repo repository.NotificationRepository
+	repo *repository.NotificationRepository
 }
 
-func NewNotificationService(repo repository.NotificationRepository) *NotificationService {
+func NewNotificationService(repo *repository.NotificationRepository) *NotificationService {
 	return &NotificationService{repo: repo}
 }
 

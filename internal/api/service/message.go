@@ -3,10 +3,10 @@ package service
 import "github.com/polyk005/message/internal/api/repository"
 
 type MessageService struct {
-	repo repository.MessageRepository
+	repo *repository.MessageRepository
 }
 
-func NewMessageService(repo repository.MessageRepository) *MessageService {
+func NewMessageService(repo *repository.MessageRepository) *MessageService {
 	return &MessageService{repo: repo}
 }
 

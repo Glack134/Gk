@@ -10,9 +10,9 @@ type Authorization interface {
 }
 
 type Chat interface {
-	CreateChat(name string, participantIDs []int) (int, error)
-	GetChat(chatID string) (interface{}, error)
-	AddParticipant(chatID, participantID int) error
+	CreateChat(name string) (int, error)
+	AddParticipant(chatID, userID int) error
+	GetChatsForUser(userID int) ([]map[string]interface{}, error)
 }
 
 type Message interface {
@@ -31,20 +31,28 @@ type Payment interface {
 	GetPaymentStatus(paymentID string) (string, error)
 }
 
+type Subscription interface {
+	CreateSubscription(userID int, plan string) (int, error)
+	GetSubscription(userID int) (map[string]interface{}, error)
+	CancelSubscription(subscriptionID int) error
+}
+
 type Service struct {
-	Authorization
-	Chat
-	Message
-	Notification
-	Payment
+	Authorization Authorization
+	Chat          Chat
+	Message       Message
+	Notification  Notification
+	Payment       Payment
+	Subscription  Subscription
 }
 
 func NewService(repos *repository.Repository, sms *SMSService) *Service {
 	return &Service{
 		Authorization: NewAuthService(repos.Authorization, sms),
-		Chat:          NewChatService(repository.ChatRepository{}),
-		Message:       NewMessageService(repository.MessageRepository{}),
-		Notification:  NewNotificationService(repository.NotificationRepository{}),
-		Payment:       NewPaymentService(repository.PaymentRepository{}),
+		Chat:          NewChatService(repos.Chat),
+		Message:       NewMessageService(repos.Message),
+		Notification:  NewNotificationService(repos.Notification),
+		Payment:       NewPaymentService(repos.Payment),
+		Subscription:  NewSubscriptionService(repos.Subscription),
 	}
 }

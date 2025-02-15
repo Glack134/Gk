@@ -43,6 +43,13 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		payment.GET("/:id/status", h.getPaymentStatus)
 	}
 
+	subscription := router.Group("/subscription")
+	{
+		subscription.POST("/create", h.createSubscription)
+		subscription.GET("/:id", h.getSubscription)
+		subscription.DELETE("/:id", h.cancelSubscription)
+	}
+
 	notification := router.Group("/notification")
 	{
 		notification.POST("/send", h.sendNotification)
