@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оплата подписки</title>
+    <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+    <h1>Оплата подписки</h1>
+    <form id="payment-form">
+        <div id="card-element">
+            <!-- Элемент для ввода данных карты -->
+        </div>
+        <button id="submit">Оплатить</button>
+        <div id="card-errors" role="alert"></div>
+    </form>
+
+    <div id="qr-code">
+        <h2>Или оплатите через QR-код</h2>
+        <img src="/generate-qr" alt="QR Code">
+    </div>
+
+    <script>
+        const stripe = Stripe('{{.StripePublicKey}}');
+        const elements = stripe.elements();
+        const cardElement = elements.create('card');
+        cardElement.mount('#card-element');
+
+        const form = document.getElementById('payment-form');
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const {error, paymentMethod} = await stripe.createPaymentMethod({
+                type: 'card',
+                card: cardElement,
+            });
+
+            if (error) {
+                const errorElement = document.getElementById('card-errors');
+                errorElement.textContent = error.message;
+            } else {
+                fetch('/create-payment-intent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({payment_method: paymentMethod.id}),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        alert('Оплата прошла успешно!');
+                        window.location.href = '/success';
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

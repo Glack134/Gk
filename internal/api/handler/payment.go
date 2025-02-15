@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/skip2/go-qrcode"
 )
 
 func (h *Handler) createPayment(c *gin.Context) {
@@ -36,4 +37,15 @@ func (h *Handler) getPaymentStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": status})
+}
+
+func (h *Handler) generateQR(c *gin.Context) {
+	// Генерация QR-кода с ссылкой на оплату
+	qr, err := qrcode.Encode("https://your-payment-link.com", qrcode.Medium, 256)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Data(http.StatusOK, "image/png", qr)
 }
