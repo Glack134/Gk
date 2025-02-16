@@ -1,13 +1,16 @@
 package service
 
-import "github.com/polyk005/message/internal/api/repository"
+import (
+	"github.com/polyk005/message/internal/api/repository"
+	"github.com/polyk005/message/internal/model"
+)
 
 type Authorization interface {
-	SendVerificationCode(identifier string) error
-	VerifyCode(identifier, code string) bool
-	SignUp(country, email, username, password string) error
-	SignIn(identifier, code string) error
-	ValidateToken(tokenString string) (int, error)
+	CreateUser(user model.User) (int, error)
+	GenerateToken(username, password string) (string, error)
+	ParseToken(accessToken string) (int, error)
+	generatePasswordHash(password string) string
+	HashPassword(password string) (string, error)
 }
 
 type Chat interface {
@@ -47,9 +50,9 @@ type Service struct {
 	Subscription  Subscription
 }
 
-func NewService(repos *repository.Repository, sms *SMSService) *Service {
+func NewService(repos *repository.Repository) *Service {
 	return &Service{
-		Authorization: NewAuthService(repos.Authorization, sms),
+		Authorization: NewAuthService(repos.Authorization),
 		Chat:          NewChatService(repos.Chat),
 		Message:       NewMessageService(repos.Message),
 		Notification:  NewNotificationService(repos.Notification),

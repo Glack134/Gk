@@ -47,21 +47,20 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	// Группа для аутентификации
 	auth := router.Group("/auth")
 	{
-		auth.POST("/send-code", h.sendCode)
 		auth.POST("/sign-up", h.signUp)
 		auth.POST("/sign-in", h.signIn)
 	}
 
 	chat := router.Group("/chat")
-	chat.Use(h.AuthMiddleware())
+	chat.Use(h.AuthMiddleware)
 	{
 		chat.POST("/create", h.createChat)
-		chat.GET("/:id", h.getChat)
+		chat.GET("/users", h.getChatsForUser)
 		chat.POST("/add-participant", h.addParticipant)
 	}
 
 	message := router.Group("/message")
-	message.Use(h.AuthMiddleware())
+	message.Use(h.AuthMiddleware)
 	{
 		message.POST("/send", h.sendMessage)
 		message.PUT("/edit", h.editMessage)
@@ -69,14 +68,14 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	}
 
 	payment := router.Group("/payment")
-	payment.Use(h.AuthMiddleware())
+	payment.Use(h.AuthMiddleware)
 	{
 		payment.POST("/create", h.createPayment)
 		payment.GET("/:id/status", h.getPaymentStatus)
 	}
 
 	subscription := router.Group("/subscription")
-	subscription.Use(h.AuthMiddleware())
+	subscription.Use(h.AuthMiddleware)
 	{
 		subscription.POST("/create", h.createSubscription)
 		subscription.GET("/:id", h.getSubscription)
@@ -84,7 +83,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	}
 
 	notification := router.Group("/notification")
-	notification.Use(h.AuthMiddleware())
+	notification.Use(h.AuthMiddleware)
 	{
 		notification.POST("/send", h.sendNotification)
 		notification.GET("/:id", h.getNotifications)

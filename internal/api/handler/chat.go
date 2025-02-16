@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,18 +24,16 @@ func (h *Handler) createChat(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"chat_id": chatID})
 }
 
-func (h *Handler) getChat(c *gin.Context) {
-	userID := c.Param("id")
-
-	userIDInt, err := strconv.Atoi(userID)
+func (h *Handler) getChatsForUser(c *gin.Context) {
+	userID, err := getUserId(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	chats, err := h.services.Chat.GetChatsForUser(userIDInt)
+	chats, err := h.services.Chat.GetChatsForUser(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 

@@ -1,79 +1,83 @@
 package service
 
 import (
+	"crypto/sha1"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/polyk005/message/internal/api/repository"
+	"github.com/polyk005/message/internal/model"
+	"golang.org/x/crypto/bcrypt"
 )
 
+const (
+	salt        = "6765fgvbhhgf35vfu9jft5tg"
+	signingKey  = "qjvkvnsjdnj2njn29njv**@9un19@!33"
+	resetingKey = "fa#dh$bsia1*&2rffvsv2135v#eg*#"
+	tokenTTL    = 12 * time.Hour
+)
+
+type tokenClaims struct {
+	jwt.StandardClaims
+	UserId int `json:"user_id"`
+}
+
 type AuthService struct {
-	repo      repository.Authorization
-	sms       *SMSService
-	codeStore map[string]string
+	repo repository.Authorization
 }
 
-func NewAuthService(repo repository.Authorization, sms *SMSService) *AuthService {
-	return &AuthService{repo: repo, sms: sms, codeStore: make(map[string]string)}
+func NewAuthService(repo repository.Authorization) *AuthService {
+	return &AuthService{repo: repo}
 }
 
-func (s *AuthService) SendVerificationCode(identifier string) error {
-	code := s.sms.GenerateCode()
-	s.codeStore[identifier] = code
+func (s *AuthService) CreateUser(user model.User) (int, error) {
+	user.Password = s.generatePasswordHash(user.Password)
+	return s.repo.CreateUser(user)
+}
 
-	if isPhone(identifier) {
-		return s.sms.SendSMS(identifier, "Your verification code is: "+code)
-	} else if isEmail(identifier) {
-		return fmt.Errorf("email sending not implemented yet")
+func (s *AuthService) GenerateToken(username, password string) (string, error) {
+	user, err := s.repo.GetUser(username, s.generatePasswordHash(password))
+	if err != nil {
+		return "", err
 	}
-	return fmt.Errorf("invalid identifier")
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
+		jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(tokenTTL).Unix(),
+			IssuedAt:  time.Now().Unix(),
+		},
+		user.Id,
+	})
+	return token.SignedString([]byte(signingKey))
 }
 
-func (s *AuthService) VerifyCode(identifier, code string) bool {
-	storedCode, ok := s.codeStore[identifier]
-	if !ok {
-		return false
-	}
-	return storedCode == code
-}
-
-func (s *AuthService) SignUp(country, email, username, password string) error {
-	return s.repo.CreateUser(country, email, username, password)
-}
-
-func (s *AuthService) SignIn(identifier, code string) error {
-	if !s.VerifyCode(identifier, code) {
-		return fmt.Errorf("invalid verification code")
-	}
-	return nil
-}
-
-func isPhone(identifier string) bool {
-	return len(identifier) >= 10
-}
-
-func isEmail(identifier string) bool {
-	return len(identifier) >= 5 && identifier[len(identifier)-4:] == ".com"
-}
-
-func (s *AuthService) ValidateToken(tokenString string) (int, error) {
-	// Парсим токен
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Проверяем метод подписи
+func (s *AuthService) ParseToken(accessToken string) (int, error) {
+	token, err := jwt.ParseWithClaims(accessToken, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			return nil, errors.New("invalid signing method")
 		}
-		return []byte("your-secret-key"), nil // Замените на ваш секретный ключ
+		return []byte(signingKey), nil
 	})
 	if err != nil {
 		return 0, err
 	}
-
-	// Извлекаем claims
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		userID := int(claims["user_id"].(float64)) // Извлекаем userID из токена
-		return userID, nil
+	claims, ok := token.Claims.(*tokenClaims)
+	if !ok {
+		return 0, errors.New("token claims are not of type *tokenClaims")
 	}
+	return claims.UserId, nil
+}
 
-	return 0, fmt.Errorf("invalid token")
+func (s *AuthService) generatePasswordHash(password string) string {
+	hash := sha1.New()
+	hash.Write([]byte(password))
+
+	return fmt.Sprintf("%x", hash.Sum([]byte(salt)))
+}
+
+func (s *AuthService) HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
 }

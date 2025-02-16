@@ -4,60 +4,86 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/polyk005/message/internal/model"
 )
 
 func (h *Handler) signUp(c *gin.Context) {
-	var input struct {
-		Country  string `json:"country"`
-		Email    string `json:"email"`
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
+	var input model.User
 
 	if err := c.BindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if err := h.services.Authorization.SignUp(input.Country, input.Email, input.Username, input.Password); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	id, err := h.services.Authorization.CreateUser(input)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"id": id,
+	})
 
-	c.JSON(http.StatusOK, gin.H{"message": "Пользователь создан"})
+}
+
+type signInInput struct {
+	Email    string `json:"email" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }
 
 func (h *Handler) signIn(c *gin.Context) {
-	var input struct {
-		Identifier string `json:"identifier"`
-		Code       string `json:"code"`
-	}
+	var input signInInput
+
 	if err := c.BindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if err := h.services.Authorization.SignIn(input.Identifier, input.Code); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	token, err := h.services.Authorization.GenerateToken(input.Email, input.Password)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "user signed in"})
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"token": token,
+	})
 }
 
-func (h *Handler) sendCode(c *gin.Context) {
-	var input struct {
-		Identifier string `json:"identifier"`
-	}
-	if err := c.BindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+// func (h *Handler) signUp(c *gin.Context) {
+// 	var input struct {
+// 		Country  string `json:"country"`
+// 		Email    string `json:"email"`
+// 		Username string `json:"username"`
+// 		Password string `json:"password"`
+// 	}
 
-	if err := h.services.Authorization.SendVerificationCode(input.Identifier); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+// 	if err := c.BindJSON(&input); err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// 		return
+// 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "verification code sent"})
-}
+// 	if err := h.services.Authorization.SignUp(input.Country, input.Email, input.Username, input.Password); err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+// 		return
+// 	}
+
+// 	c.JSON(http.StatusOK, gin.H{"message": "Пользователь создан"})
+// }
+
+// func (h *Handler) signIn(c *gin.Context) {
+// 	var input struct {
+// 		Identifier string `json:"identifier"`
+// 		Code       string `json:"code"`
+// 	}
+// 	if err := c.BindJSON(&input); err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// 		return
+// 	}
+
+// 	if err := h.services.Authorization.SignIn(input.Identifier, input.Code); err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+// 		return
+// 	}
+
+// 	c.JSON(http.StatusOK, gin.H{"message": "user signed in"})
+// }

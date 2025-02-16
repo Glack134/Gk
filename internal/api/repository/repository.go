@@ -1,11 +1,13 @@
 package repository
 
-import "github.com/jmoiron/sqlx"
+import (
+	"github.com/jmoiron/sqlx"
+	"github.com/polyk005/message/internal/model"
+)
 
 type Authorization interface {
-	CreateUser(country, email, username, password string) error
-	GetUserByPhone(phone string) (string, error)
-	GetUserByEmail(email string) (string, error)
+	CreateUser(user model.User) (int, error)
+	GetUser(email, password string) (model.User, error)
 }
 type Chat interface {
 	CreateChat(name string, participantIDs []int) (int, error)
