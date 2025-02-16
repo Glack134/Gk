@@ -3,40 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/static/styles.css">
     <title>Чат</title>
 </head>
 <body>
-    <div class="container">
-        <h1>Чат</h1>
+    <div id="chat">
         <div id="messages"></div>
-        <input type="text" id="messageInput" placeholder="Введите сообщение...">
-        <button id="sendMessage">Отправить</button>
+        <input type="text" id="messageInput" placeholder="Введите сообщение">
+        <button id="sendButton">Отправить</button>
     </div>
     <script>
-        document.getElementById('sendMessage').onclick = async function() {
+        const username = "{{ .Username }}";
+        console.log('Пользователь:', username);
+
+        document.getElementById('sendButton').addEventListener('click', function() {
             const message = document.getElementById('messageInput').value;
-
-            const response = await fetch('/message/send', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ message }),
-            });
-
-            if (response.ok) {
-                // Обновление сообщений после отправки
-                loadMessages();
-                document.getElementById('messageInput').value = ''; // Очистка поля ввода
-            } else {
-                alert('Ошибка при отправке сообщения.');
+            if (message) {
+                fetch('/send-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Сообщение отправлено:', data);
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                });
             }
-        };
-
-        async function loadMessages() {
-            const response = await fetch('/chat/1'); // Предполагается, что ID чата равен 1
-            const messages = await response.json();
-
-            const messagesContainer = document.getElement
-        }
+        });
+    </script>
+</body>
+</html>

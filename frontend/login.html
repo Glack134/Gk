@@ -19,21 +19,32 @@
     <script>
         document.getElementById('loginForm').onsubmit = async function(event) {
             event.preventDefault();
+
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
 
-            const response = await fetch('/auth/sign-in', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username, password }),
-            });
+            try {
+                const response = await fetch('/auth/sign-in', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }), // Исправлено: используем email вместо username
+                });
 
-            if (response.ok) {
-                window.location.href = '/chat.html';
-            } else {
-                alert('Ошибка входа. Проверьте имя пользователя и пароль.');
+                const data = await response.json(); // Парсим ответ сервера
+
+                if (response.ok) {
+                    // Если вход успешен, перенаправляем на страницу чата
+                    window.location.href = '/chat.html';
+                } else {
+                    // Если сервер вернул ошибку, выводим её сообщение
+                    alert(`Ошибка входа: ${data.message || 'Неизвестная ошибка'}`);
+                }
+            } catch (error) {
+                // Обработка ошибок сети или других исключений
+                console.error('Ошибка при отправке запроса:', error);
+                alert('Произошла ошибка при попытке входа. Пожалуйста, попробуйте снова.');
             }
         };
     </script>
