@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/styles.css">
+    <title>Профиль</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Ваш профиль</h1>
+        <p>Имя пользователя: <span id="usernameDisplay"></span></p>
+        <button id="logoutButton">Выйти</button>
+    </div>
+    <script>
+        // Здесь можно получить данные пользователя и отобразить их
+        document.getElementById('usernameDisplay').innerText = 'Имя пользователя'; // Замените на реальное значение
+
+        document.getElementById('logoutButton').onclick = async function() {
+            const response = await fetch('/auth/logout', {
+                method: 'POST',
+            });
+
+            if (response.ok) {
+                window.location.href = '/login.html'; // Перенаправление на страницу входа
+            } else {
+                alert('Ошибка выхода. Попробуйте еще раз.');
+            }
+        };
+    </script>
+</body>
+</html>

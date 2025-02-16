@@ -7,6 +7,7 @@ type Authorization interface {
 	VerifyCode(identifier, code string) bool
 	SignUp(identifier, code string) error
 	SignIn(identifier, code string) error
+	ValidateToken(tokenString string) (int, error)
 }
 
 type Chat interface {

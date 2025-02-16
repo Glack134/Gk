@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/polyk005/message/internal/api/repository"
 )
 
@@ -62,4 +63,26 @@ func isPhone(identifier string) bool {
 
 func isEmail(identifier string) bool {
 	return len(identifier) >= 5 && identifier[len(identifier)-4:] == ".com"
+}
+
+func (s *AuthService) ValidateToken(tokenString string) (int, error) {
+	// Парсим токен
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Проверяем метод подписи
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte("your-secret-key"), nil // Замените на ваш секретный ключ
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	// Извлекаем claims
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		userID := int(claims["user_id"].(float64)) // Извлекаем userID из токена
+		return userID, nil
+	}
+
+	return 0, fmt.Errorf("invalid token")
 }
