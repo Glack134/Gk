@@ -8,20 +8,23 @@ import (
 
 func (h *Handler) signUp(c *gin.Context) {
 	var input struct {
-		Identifier string `json:"identifier"`
-		Code       string `json:"code"`
+		Country  string `json:"country"`
+		Email    string `json:"email"`
+		Username string `json:"username"`
+		Password string `json:"password"`
 	}
+
 	if err := c.BindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err := h.services.Authorization.SignUp(input.Identifier, input.Code); err != nil {
+	if err := h.services.Authorization.SignUp(input.Country, input.Email, input.Username, input.Password); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "user created"})
+	c.JSON(http.StatusOK, gin.H{"message": "Пользователь создан"})
 }
 
 func (h *Handler) signIn(c *gin.Context) {

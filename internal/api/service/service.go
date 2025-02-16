@@ -5,7 +5,7 @@ import "github.com/polyk005/message/internal/api/repository"
 type Authorization interface {
 	SendVerificationCode(identifier string) error
 	VerifyCode(identifier, code string) bool
-	SignUp(identifier, code string) error
+	SignUp(country, email, username, password string) error
 	SignIn(identifier, code string) error
 	ValidateToken(tokenString string) (int, error)
 }

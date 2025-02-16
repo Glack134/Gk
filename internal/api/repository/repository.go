@@ -3,7 +3,7 @@ package repository
 import "github.com/jmoiron/sqlx"
 
 type Authorization interface {
-	CreateUser(phone, email string) error
+	CreateUser(country, email, username, password string) error
 	GetUserByPhone(phone string) (string, error)
 	GetUserByEmail(email string) (string, error)
 }

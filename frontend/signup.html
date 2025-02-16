@@ -7,34 +7,55 @@
     <title>Регистрация</title>
 </head>
 <body>
-    <div class="container">
+    <main class="container">
         <h1>Регистрация</h1>
-        <form id="signupForm">
-            <input type="text" id="username" placeholder="Имя пользователя" required>
-            <input type="password" id="password" placeholder="Пароль" required>
+        <form id="signupForm" aria-label="Форма регистрации">
+            <div class="form-group">
+                <label for="country">Страна</label>
+                <input type="text" id="country" placeholder="Страна" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Электронная почта</label>
+                <input type="email" id="email" placeholder="Электронная почта" required>
+            </div>
+            <div class="form-group">
+                <label for="username">Имя пользователя</label>
+                <input type="text" id="username" placeholder="Имя пользователя" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Пароль</label>
+                <input type="password" id="password" placeholder="Пароль" required>
+            </div>
             <button type="submit">Зарегистрироваться</button>
         </form>
         <p>Уже есть аккаунт? <a href="/login.html">Войти</a></p>
-    </div>
+    </main>
     <script>
         document.getElementById('signupForm').onsubmit = async function(event) {
             event.preventDefault();
+
+            // Получаем значения из формы
+            const country = document.getElementById('country').value;
+            const email = document.getElementById('email').value;
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
+            // Отправляем данные на сервер
             const response = await fetch('/auth/sign-up', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify({ country, email, username, password }),
             });
 
+            // Обработка ответа
             if (response.ok) {
-                alert('Регистрация прошла успешно. Теперь вы можете войти.');
-                window.location.href = '/login.html';
+                alert('Регистрация прошла успешно! Теперь вы можете войти.');
+                window.location.href = '/login.html'; // Перенаправление на страницу входа
             } else {
-                alert('Ошибка регистрации. Попробуйте еще раз.');
+                const errorText = await response.text();
+                alert('Ошибка регистрации: ' + errorText);
             }
         };
     </script>

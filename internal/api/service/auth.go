@@ -37,17 +37,8 @@ func (s *AuthService) VerifyCode(identifier, code string) bool {
 	return storedCode == code
 }
 
-func (s *AuthService) SignUp(identifier, code string) error {
-	if !s.VerifyCode(identifier, code) {
-		return fmt.Errorf("invalid verification code")
-	}
-
-	if isPhone(identifier) {
-		return s.repo.CreateUser(identifier, "")
-	} else if isEmail(identifier) {
-		return s.repo.CreateUser("", identifier)
-	}
-	return fmt.Errorf("invalid identifier")
+func (s *AuthService) SignUp(country, email, username, password string) error {
+	return s.repo.CreateUser(country, email, username, password)
 }
 
 func (s *AuthService) SignIn(identifier, code string) error {
