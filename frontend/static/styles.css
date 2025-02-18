@@ -1,16 +1,17 @@
+/* Пример стилей для формы регистрации */
 body {
     font-family: Arial, sans-serif;
-    background-color: #f0f0f0;
+    background-color: #f4f4f4;
     margin: 0;
     padding: 0;
 }
 
 .container {
-    max-width: 600px;
-    margin: 50px auto;
+    max-width: 400px; /* Максимальная ширина контейнера */
+    margin: 50px auto; /* Центрирование на странице */
     padding: 20px;
     background-color: #fff;
-    border-radius: 8px;
+    border-radius: 5px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
@@ -18,34 +19,39 @@ h1 {
     text-align: center;
 }
 
+.form-group {
+    margin-bottom: 15px; /* Отступ между полями */
+}
+
+label {
+    display: block;
+    margin-bottom: 5px; /* Отступ под заголовком */
+}
+
 input[type="text"],
+input[type="email"],
 input[type="password"] {
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    width: 100%; /* Полная ширина поля */
+    padding: 10px; /* Внутренний отступ */
+    border: 1px solid #ccc; /* Граница поля */
+    border-radius: 4px; /* Закругленные углы */
+    box-sizing: border-box; /* Включает padding и border в общую ширину */
 }
 
 button {
-    width: 100%;
+    width: 100%; /* Полная ширина кнопки */
     padding: 10px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+    background-color: #28a745; /* Цвет кнопки */
+    color: white; /* Цвет текста */
+    border: none; /* Без границы */
+    border-radius: 4px; /* Закругленные углы */
+    cursor: pointer; /* Указатель при наведении */
 }
 
 button:hover {
-    background-color: #0056b3;
+    background-color: #218838; /* Цвет кнопки при наведении */
 }
 
-.btn {
-    display: inline-block;
-    padding: 10px 20px;
-    background-color: #28a745;
-    color: white;
-    text-decoration: none;
-    border-radius: 4px;
+p {
+    text-align: center; /* Центрирование текста */
 }

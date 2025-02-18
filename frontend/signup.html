@@ -5,59 +5,196 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/static/styles.css">
     <title>Регистрация</title>
+    <style>
+        /* Основные стили для формы */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        /* Стили для выпадающего списка */
+        .custom-select {
+            position: relative;
+        }
+        .custom-select select {
+            display: none; /* Скрываем стандартный select */
+        }
+        .select-selected {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .select-items {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            z-index: 99;
+            display: none;
+            width: 100%;
+        }
+        .select-items div {
+            padding: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        .select-items div:hover {
+            background-color: #f1f1f1;
+        }
+        .flag {
+            width: 20px;
+            height: 15px;
+            margin-right: 10px;
+        }
+    </style>
 </head>
 <body>
     <main class="container">
         <h1>Регистрация</h1>
         <form id="signupForm" aria-label="Форма регистрации">
-            <div class="form-group">
+            <div class="form-group custom-select">
                 <label for="country">Страна</label>
-                <input type="text" id="country" placeholder="Страна" required>
+                <div class="select-selected">Выберите страну</div>
+                <div class="select-items">
+                    <div data-value="ru"><img src="https://i.pinimg.com/736x/32/6d/61/326d61db0dc7865f6d753cd568d1c44e.jpg" class="flag" alt="Флаг России">Россия</div>
+                    <div data-value="us"><img src="https://i.pinimg.com/736x/97/25/01/972501799b7160f1028a2ddb3a53637f.jpg" class="flag" alt="Флаг США">США</div>
+                    <div data-value="de"><img src="https://i.pinimg.com/736x/27/bc/bf/27bcbf98c51f45bfca7e1bbb058c2c20.jpg" class="flag" alt="Флаг Германии">Германия</div>
+                    <div data-value="fr"><img src="https://i.pinimg.com/736x/88/c7/cf/88c7cf95e20986c82789a7bc8a653d3f.jpg" class="flag" alt="Флаг Франции">Франция</div>
+                    <div data-value="uk"><img src="https://i.pinimg.com/736x/69/0f/1a/690f1af002b66ef815252acd93f3a2c4.jpg" class="flag" alt="Флаг Великобритании">Великобритания</div>
+                    <div data-value="jp"><img src="https://i.pinimg.com/736x/69/09/c9/6909c96fe24ddef66082bc80b6913647.jpg" class="flag" alt="Флаг Японии">Япония</div>
+                    <div data-value="cn"><img src="https://i.pinimg.com/736x/a7/a1/31/a7a131d851a1c86746f1938cf8a91137.jpg" class="flag" alt="Флаг Китая">Китай</div>
+                    <div data-value="it"><img src="https://i.pinimg.com/736x/d3/98/4f/d3984f814c657479b195b7fa2fbe4d92.jpg" class="flag" alt="Флаг Италии">Италия</div>
+                    <div data-value="es"><img src="https://i.pinimg.com/736x/b1/92/84/b19284ad94df137d6e33e87c474e2bdc.jpg" class="flag" alt="Флаг Испании">Испания</div>
+                    <div data-value="br"><img src="https://i.pinimg.com/736x/a1/30/ee/a130ee1b0f2f4a1902d4c3094d574799.jpg" class="flag" alt="Флаг Бразилии">Бразилия</div>
+                    <div data-value="ca"><img src="https://i.pinimg.com/736x/4c/ab/98/4cab9800495d04a0eac4afbd48f6bb5a.jpg" class="flag" alt="Флаг Канады">Канада</div>
+                    <div data-value="au"><img src="https://i.pinimg.com/736x/50/db/d6/50dbd6191e4673a90adb5de97bb6af9d.jpg" class="flag" alt="Флаг Австралии">Австралия</div>
+                    <div data-value="in"><img src="https://i.pinimg.com/736x/aa/e4/6e/aae46e70a25593ad7803d142b93b4c3d.jpg" class="flag" alt="Флаг Индии">Индия</div>
+                    <div data-value="za"><img src="https://i.pinimg.com/736x/1f/a9/e2/1fa9e2de7f8b7df122f8c90896a0c054.jpg" class="flag" alt="Флаг ЮАР">Южноафриканская Республика</div>
+                    <!-- Добавьте больше стран по желанию -->
+                </div>
+                <input type="hidden" id="country" name="country">
             </div>
             <div class="form-group">
                 <label for="email">Электронная почта</label>
-                <input type="email" id="email" placeholder="Электронная почта" required>
+                <input type="email" id="email" name="email" required>
             </div>
             <div class="form-group">
                 <label for="username">Имя пользователя</label>
-                <input type="text" id="username" placeholder="Имя пользователя" required>
+                <input type="text" id="username" name="username" required>
             </div>
             <div class="form-group">
                 <label for="password">Пароль</label>
-                <input type="password" id="password" placeholder="Пароль" required>
+                <input type="password" id="password" name="password" required>
             </div>
             <button type="submit">Зарегистрироваться</button>
         </form>
-        <p>Уже есть аккаунт? <a href="/login.html">Войти</a></p>
     </main>
-    <script>
-        document.getElementById('signupForm').onsubmit = async function(event) {
-            event.preventDefault();
 
-            // Получаем значения из формы
-            const country = document.getElementById('country').value;
+    <script>
+        const selectSelected = document.querySelector('.select-selected');
+        const selectItems = document.querySelector('.select-items');
+        const hiddenInput = document.getElementById('country');
+
+        // Открытие и закрытие выпадающего списка
+        selectSelected.addEventListener('click', () => {
+            selectItems.style.display = selectItems.style.display === 'block' ? 'none' : 'block';
+        });
+
+        // Обработка выбора страны
+        selectItems.querySelectorAll('div').forEach(item => {
+            item.addEventListener('click', () => {
+                selectSelected.textContent = item.textContent;
+                hiddenInput.value = item.getAttribute('data-value');
+                selectItems.style.display = 'none';
+            });
+        });
+
+        // Закрытие выпадающего списка при клике вне его
+        document.addEventListener('click', (event) => {
+            if (!selectSelected.contains(event.target)) {
+                selectItems.style.display = 'none';
+            }
+        });
+
+        // Обработка отправки формы
+        document.getElementById('signupForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
             const email = document.getElementById('email').value;
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
+            const country = hiddenInput.value;
 
-            // Отправляем данные на сервер
-            const response = await fetch('/auth/sign-up', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ country, email, username, password }),
-            });
-
-            // Обработка ответа
-            if (response.ok) {
-                alert('Регистрация прошла успешно! Теперь вы можете войти.');
-                window.location.href = '/login.html'; // Перенаправление на страницу входа
-            } else {
-                const errorText = await response.text();
-                alert('Ошибка регистрации: ' + errorText);
+            // Проверка заполнения полей
+            if (!country || !email || !username || !password) {
+                alert('Пожалуйста, заполните все поля.');
+                return;
             }
-        };
+
+            if (password.length < 6) {
+                alert('Пароль должен содержать не менее 6 символов.');
+                return;
+            }
+
+            // Отправка данных на сервер
+            try {
+                const response = await fetch('/auth/sign-up', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ country, email, username, password }),
+                });
+
+                // Обработка ответа
+                if (response.ok) {
+                    alert('Регистрация прошла успешно! Теперь вы можете войти.');
+                    window.location.href = '/login.html'; // Перенаправление на страницу входа
+                } else {
+                    const errorData = await response.json();
+                    alert('Ошибка регистрации: ' + (errorData.message || 'Неизвестная ошибка'));
+                }
+            } catch (error) {
+                console.error('Ошибка при отправке данных:', error);
+                alert('Произошла ошибка при отправке данных. Пожалуйста, попробуйте еще раз.');
+            }
+        });
     </script>
 </body>
 </html>
