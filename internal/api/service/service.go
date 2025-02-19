@@ -18,7 +18,7 @@ type Chat interface {
 	AddParticipant(chatID, userID int) error
 	GetChatsForUser(userID int) ([]map[string]interface{}, error)
 	UserExists(username string) (bool, error)
-	ChatExists(userID int) (int, error)
+	ChatExistsBetweenUsers(userID1, userID2 int) (int, error)
 	GetUserIDByUsername(username string) (int, error)
 }
 

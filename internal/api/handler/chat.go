@@ -40,8 +40,8 @@ func (h *Handler) createChat(c *gin.Context) {
 		return
 	}
 
-	// Проверяем, существует ли уже чат с этим пользователем
-	chatID, err := h.services.Chat.ChatExists(participantID)
+	// Проверяем, существует ли уже чат между этими двумя пользователями
+	chatID, err := h.services.Chat.ChatExistsBetweenUsers(userID, participantID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

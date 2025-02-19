@@ -23,7 +23,6 @@ func (r *ChatRepository) CreateChat(userID, participantID int, chatName string) 
 		return 0, err
 	}
 
-	// Добавляем обоих пользователей в чат
 	err = r.AddUserToChat(newChatID, userID)
 	if err != nil {
 		return 0, err
@@ -53,7 +52,7 @@ func (r *ChatRepository) GetUserChats(userID int) ([]model.Chat, error) {
 		SELECT c.id, c.name 
 		FROM chats c
 		JOIN chat_participants cp ON c.id = cp.chat_id
-		WHERE cp.user_id = \$1
+		WHERE cp.user_id = $1
 	`
 	rows, err := r.db.Query(query, userID)
 	if err != nil {
@@ -106,4 +105,23 @@ func (r *ChatRepository) GetUserIDByUsername(username string) (int, error) {
 		return 0, err
 	}
 	return userID, nil
+}
+
+func (r *ChatRepository) ChatExistsBetweenUsers(userID1, userID2 int) (int, error) {
+	var chatID int
+	query := `
+		SELECT c.id 
+		FROM chats c
+		JOIN chat_participants cp1 ON c.id = cp1.chat_id
+		JOIN chat_participants cp2 ON c.id = cp2.chat_id
+		WHERE cp1.user_id = $1 AND cp2.user_id = $2
+	`
+	err := r.db.QueryRow(query, userID1, userID2).Scan(&chatID)
+	if err == sql.ErrNoRows {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	return chatID, nil
 }

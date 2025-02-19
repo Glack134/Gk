@@ -17,6 +17,7 @@ type Chat interface {
 	UserExists(username string) (bool, error)
 	ChatExists(userID int) (int, error)
 	GetUserIDByUsername(username string) (int, error)
+	ChatExistsBetweenUsers(userID1, userID2 int) (int, error)
 }
 
 type Message interface {

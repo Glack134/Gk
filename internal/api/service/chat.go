@@ -41,8 +41,8 @@ func (s *ChatService) UserExists(username string) (bool, error) {
 	return s.repo.UserExists(username)
 }
 
-func (s *ChatService) ChatExists(userID int) (int, error) {
-	return s.repo.ChatExists(userID)
+func (s *ChatService) ChatExistsBetweenUsers(userID1, userID2 int) (int, error) {
+	return s.repo.ChatExists(userID1)
 }
 
 func (s *ChatService) GetUserIDByUsername(username string) (int, error) {
