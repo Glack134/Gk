@@ -10,9 +10,13 @@ type Authorization interface {
 	GetUser(email, password string) (model.User, error)
 }
 type Chat interface {
-	CreateChat(name string, participantIDs []int) (int, error)
-	GetChat(chatID string) (interface{}, error)
-	AddParticipant(chatID, participantID int) error
+	CreateChat(userID, participantID int, chatName string) (int, error)
+	AddUserToChat(chatID, userID int) error
+	AddParticipant(chatID, userID int) error
+	GetUserChats(userID int) ([]Chat, error)
+	UserExists(username string) (bool, error)
+	ChatExists(userID int) (int, error)
+	GetUserIDByUsername(username string) (int, error)
 }
 
 type Message interface {

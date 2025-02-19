@@ -55,7 +55,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	chat.Use(h.AuthMiddleware)
 	{
 		chat.POST("/create", h.createChat)
-		chat.GET("/users", h.getChatsForUser)
+		chat.POST("/chats", h.getChatsForUser)
 		chat.POST("/add-participant", h.addParticipant)
 	}
 

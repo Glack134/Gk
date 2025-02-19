@@ -7,15 +7,53 @@ import (
 )
 
 func (h *Handler) createChat(c *gin.Context) {
+	userID, err := getUserId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	var input struct {
-		Name string `json:"name"`
+		Username string `json:"username"`
 	}
 	if err := c.BindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	chatID, err := h.services.Chat.CreateChat(input.Name)
+	// Проверяем, существует ли пользователь
+	userExists, err := h.services.Chat.UserExists(input.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !userExists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found. Please invite the user to register."})
+		return
+	}
+
+	// Получаем ID пользователя, с которым создается чат
+	participantID, err := h.services.Chat.GetUserIDByUsername(input.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Проверяем, существует ли уже чат с этим пользователем
+	chatID, err := h.services.Chat.ChatExists(participantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if chatID != 0 {
+		c.JSON(http.StatusOK, gin.H{"chat_id": chatID})
+		return
+	}
+
+	// Если чат не существует, создаем новый
+	chatID, err = h.services.Chat.CreateChat(userID, participantID, "New Chat")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -57,16 +58,18 @@ func (h *Handler) AuthMiddleware(c *gin.Context) {
 	}
 
 	headerParts := strings.Split(header, " ")
-	if len(headerParts) != 2 {
+	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
 		newErrorResponse(c, http.StatusUnauthorized, "invalid auth header")
 		return
 	}
 
-	userId, err := h.services.Authorization.ParseToken(headerParts[1])
+	token := headerParts[1]
+	userId, err := h.services.Authorization.ParseToken(token)
 	if err != nil {
-		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		newErrorResponse(c, http.StatusUnauthorized, fmt.Sprintf("invalid token: %s", err.Error()))
 		return
 	}
 
 	c.Set(userCtx, userId)
+	c.Next()
 }

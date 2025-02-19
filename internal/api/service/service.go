@@ -14,9 +14,12 @@ type Authorization interface {
 }
 
 type Chat interface {
-	CreateChat(name string) (int, error)
+	CreateChat(userID, participantID int, chatName string) (int, error)
 	AddParticipant(chatID, userID int) error
 	GetChatsForUser(userID int) ([]map[string]interface{}, error)
+	UserExists(username string) (bool, error)
+	ChatExists(userID int) (int, error)
+	GetUserIDByUsername(username string) (int, error)
 }
 
 type Message interface {
