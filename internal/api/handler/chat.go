@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"sort"
 
 	"github.com/gin-gonic/gin"
 	"github.com/polyk005/message/pkg/websocket"
@@ -15,7 +16,7 @@ func (h *Handler) createChat(c *gin.Context) {
 	}
 
 	var input struct {
-		Usernames []string `json:"usernames"` // Список участников
+		Usernames []string `json:"usernames"`
 		ChatName  string   `json:"chat_name"`
 	}
 	if err := c.BindJSON(&input); err != nil {
@@ -23,7 +24,6 @@ func (h *Handler) createChat(c *gin.Context) {
 		return
 	}
 
-	// Получаем ID всех участников
 	var participantIDs []int
 	for _, username := range input.Usernames {
 		participantID, err := h.services.Chat.GetUserIDByUsername(username)
@@ -34,17 +34,27 @@ func (h *Handler) createChat(c *gin.Context) {
 		participantIDs = append(participantIDs, participantID)
 	}
 
-	// Добавляем текущего пользователя в список участников
 	participantIDs = append(participantIDs, userID)
 
-	// Создаем чат
+	//проверка чата создан ли он или нет
+	sort.Ints(participantIDs)
+	existingChatID, err := h.services.Chat.FindExistingChat(participantIDs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error checking chat existence"})
+		return
+	}
+
+	if existingChatID != 0 {
+		c.JSON(http.StatusOK, gin.H{"chat_id": existingChatID})
+		return
+	}
+
 	chatID, err := h.services.Chat.CreateChat(input.ChatName, participantIDs...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Отправляем уведомление через WebSocket
 	h.hub.Broadcast <- websocket.Message{
 		Type:    "new_chat",
 		Payload: map[string]interface{}{"chat_id": chatID, "user_ids": participantIDs},

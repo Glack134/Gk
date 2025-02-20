@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 
 	"github.com/polyk005/message/internal/model"
@@ -23,7 +24,6 @@ func (r *ChatRepository) CreateChat(chatName string, userIDs ...int) (int, error
 		return 0, err
 	}
 
-	// Добавляем участников в чат
 	for _, userID := range userIDs {
 		err := r.AddUserToChat(newChatID, userID)
 		if err != nil {
@@ -128,6 +128,61 @@ func (r *ChatRepository) ChatExistsBetweenUsers(userIDs ...int) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	return chatID, nil
+}
+
+func (r *ChatRepository) FindExistingChat(userIDs []int) (int, error) {
+	// 1. Basic Validation: Ensure at least two users are present (for a meaningful chat)
+	if len(userIDs) < 2 { // Or 1 if one-user chats are allowed
+		return 0, nil // Not an error; no chat can exist with < 2 users
+	}
+
+	// 2. Construct the SQL query
+	query := `
+		SELECT c.id
+		FROM chats c
+		WHERE EXISTS (
+			SELECT 1
+			FROM chat_participants cp
+			WHERE cp.chat_id = c.id
+			  AND cp.user_id IN (` + strings.Repeat("?,", len(userIDs)-1) + `?)
+			GROUP BY cp.chat_id
+			HAVING COUNT(DISTINCT cp.user_id) = ?
+		)
+		AND NOT EXISTS (  -- Ensure NO other users are in the chat.
+			SELECT 1
+			FROM chat_participants cp2
+			WHERE cp2.chat_id = c.id
+			  AND cp2.user_id NOT IN (` + strings.Repeat("?,", len(userIDs)-1) + `?)
+		)
+		LIMIT 1;  -- Important:  Stop after finding the first match
+	`
+
+	// 3. Build arguments array: userIDs (IN clause) + count + userIDs(NOT IN)
+	args := make([]interface{}, 0, 2*len(userIDs)+1)
+	for _, id := range userIDs {
+		args = append(args, id)
+	}
+
+	args = append(args, len(userIDs)) // Count of DISTINCT users
+
+	for _, id := range userIDs {
+		args = append(args, id)
+	}
+	//4 Logging:
+	fmt.Printf("QUERY: %s\n", query)
+	fmt.Printf("ARGS: %v\n", args)
+
+	// 5. Execute Query:
+	var chatID int
+	err := r.db.QueryRow(query, args...).Scan(&chatID)
+	if err == sql.ErrNoRows {
+		return 0, nil // No chat found
+	} else if err != nil {
+		fmt.Printf("ERROR: %s\n", err)
+		return 0, err
+	}
+
 	return chatID, nil
 }
 

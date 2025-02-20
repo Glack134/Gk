@@ -49,6 +49,10 @@ func (s *ChatService) GetUserIDByUsername(username string) (int, error) {
 	return s.repo.GetUserIDByUsername(username)
 }
 
+func (s *ChatService) FindExistingChat(userIDs []int) (int, error) {
+	return s.repo.FindExistingChat(userIDs)
+}
+
 func (s *ChatService) DeleteChatForAll(chatID int) error {
 	return s.repo.DeleteChatForAll(chatID)
 }

@@ -22,6 +22,7 @@ type Chat interface {
 	GetUserIDByUsername(username string) (int, error)
 	DeleteChatForAll(chatID int) error
 	DeleteChatForUser(chatID, userID int) error
+	FindExistingChat(userIDs []int) (int, error)
 }
 
 type Message interface {
