@@ -13,6 +13,16 @@ func NewChatService(repo *repository.ChatRepository) *ChatService {
 }
 
 func (s *ChatService) CreateChat(chatName string, userIDs ...int) (int, error) {
+	if len(userIDs) == 2 {
+		existingChatID, err := s.FindExistingChat(userIDs)
+		if err != nil {
+			return 0, err
+		}
+		if existingChatID != 0 {
+			return existingChatID, nil
+		}
+	}
+
 	return s.repo.CreateChat(chatName, userIDs...)
 }
 

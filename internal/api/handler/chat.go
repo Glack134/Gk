@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"sort"
 
@@ -11,7 +12,7 @@ import (
 func (h *Handler) createChat(c *gin.Context) {
 	userID, err := getUserId(c)
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -19,8 +20,14 @@ func (h *Handler) createChat(c *gin.Context) {
 		Usernames []string `json:"usernames"`
 		ChatName  string   `json:"chat_name"`
 	}
+
 	if err := c.BindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if input.ChatName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Chat name cannot be empty"})
 		return
 	}
 
@@ -28,27 +35,34 @@ func (h *Handler) createChat(c *gin.Context) {
 	for _, username := range input.Usernames {
 		participantID, err := h.services.Chat.GetUserIDByUsername(username)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to get user ID for %s: %s", username, err.Error())})
+			return
+		}
+		if participantID == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("User  %s does not exist", username)})
 			return
 		}
 		participantIDs = append(participantIDs, participantID)
 	}
 
-	participantIDs = append(participantIDs, userID)
+	participantIDs = append(participantIDs, userID) // Добавляем текущего пользователя
+	sort.Ints(participantIDs)                       // Сортируем ID пользователей
 
-	//проверка чата создан ли он или нет
-	sort.Ints(participantIDs)
-	existingChatID, err := h.services.Chat.FindExistingChat(participantIDs)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error checking chat existence"})
-		return
+	// Проверяем, является ли это чатом один на один
+	if len(participantIDs) == 2 {
+		existingChatID, err := h.services.Chat.FindExistingChat(participantIDs)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Database error checking chat existence: %s", err.Error())})
+			return
+		}
+
+		if existingChatID != 0 {
+			c.JSON(http.StatusOK, gin.H{"chat_id": existingChatID})
+			return // Чат уже существует, возвращаем его ID
+		}
 	}
 
-	if existingChatID != 0 {
-		c.JSON(http.StatusOK, gin.H{"chat_id": existingChatID})
-		return
-	}
-
+	// Создаем чат (только если он не существует)
 	chatID, err := h.services.Chat.CreateChat(input.ChatName, participantIDs...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -57,7 +71,7 @@ func (h *Handler) createChat(c *gin.Context) {
 
 	h.hub.Broadcast <- websocket.Message{
 		Type:    "new_chat",
-		Payload: map[string]interface{}{"chat_id": chatID, "user_ids": participantIDs},
+		Payload: map[string]interface{}{"chat_id": chatID, "user_id": participantIDs},
 	}
 
 	c.JSON(http.StatusOK, gin.H{"chat_id": chatID})
@@ -126,12 +140,4 @@ func (h *Handler) deleteChat(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	// Отправляем уведомление через WebSocket
-	h.hub.Broadcast <- websocket.Message{
-		Type:    "delete_chat",
-		Payload: map[string]interface{}{"chat_id": input.ChatID, "for_all": input.ForAll},
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "chat deleted"})
 }

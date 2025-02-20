@@ -20,7 +20,7 @@ type Chat interface {
 	ChatExistsBetweenUsers(userIDs ...int) (int, error)
 	DeleteChatForAll(chatID int) error
 	DeleteChatForUser(chatID, userID int) error
-	FindExistingChat(userIDs []int) (int, error)
+	FindExistingChat(userID []int) (int, error)
 }
 
 type Message interface {
