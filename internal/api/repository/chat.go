@@ -26,7 +26,7 @@ func (r *ChatRepository) CreateChat(chatName string, userIDs ...int) (int, error
 	for _, userID := range userIDs {
 		err := r.AddUserToChat(newChatID, userID)
 		if err != nil {
-			return 0, err // Handle error adding user!
+			return 0, err
 		}
 	}
 

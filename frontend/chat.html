@@ -58,6 +58,29 @@
             height: 50px;
             border-radius: 50%;
         }
+        /* Стили для модального окна */
+        #createChatModal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border: 1px solid #ccc;
+            padding: 20px;
+            z-index: 1000;
+            display: none; /* Изначально скрыто */
+        }
+        #createChatModal ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        #createChatModal li {
+            cursor: pointer;
+            padding: 5px;
+        }
+        #createChatModal li.selected {
+            background-color: #e0e0e0; /* Цвет выделенного элемента */
+        }
     </style>
 </head>
 <body>
@@ -84,6 +107,15 @@
         <input type="text" id="messageInput" placeholder="Введите сообщение">
         <button id="sendButton">Отправить</button>
     </div>
+
+    <!-- Модальное окно для выбора друзей -->
+    <div id="createChatModal">
+        <h3>Выберите друзей для чата</h3>
+        <ul id="friendSelectionList"></ul>
+        <button id="confirmCreateChatButton">Создать чат</button>
+        <button id="cancelCreateChatButton">Отмена</button>
+    </div>
+
     <script>
         const username = "{{ .Username }}"; // Имя пользователя из бэкенда
         let currentChatId = null; // ID текущего чата
@@ -102,6 +134,7 @@
                 chatList.innerHTML = ''; // Очистка списка перед загрузкой новых данных
                 chats.forEach(chat => {
                     const li = document.createElement('li');
+                    li.className
                     li.className = 'chat-item';
                     li.innerHTML = `<img src="${chat.profilePic || 'path/to/default-pic.jpg'}" alt="${chat.name}"> ${chat.name}`; // Предполагаем, что у чата есть поле `name` и `profilePic`
                     li.onclick = () => {
@@ -125,71 +158,43 @@
             .then(response => response.json())
             .then(messages => {
                 const messagesDiv = document.getElementById('messages');
-                messagesDiv.innerHTML = ''; // Очистка сообщений перед загрузкой
+                messagesDiv.innerHTML = ''; // Очистка перед загрузкой новых сообщений
                 messages.forEach(message => {
                     const messageDiv = document.createElement('div');
                     messageDiv.className = 'message';
-                    messageDiv.textContent = `${message.sender}: ${message.text}`; // Предполагаем, что у сообщения есть поля `sender` и `text`
+                    messageDiv.textContent = message.text; // Предполагаем, что у сообщения есть поле `text`
                     messagesDiv.appendChild(messageDiv);
                 });
             })
             .catch(error => console.error('Ошибка загрузки сообщений:', error));
         }
 
-        // Отправка сообщения
-        document.getElementById('sendButton').addEventListener('click', function() {
-            const message = document.getElementById('messageInput').value;
-            if (message && currentChatId) {
-                fetch('/message/send', {
+        // Отправка нового сообщения
+        document.getElementById('sendButton').onclick = () => {
+            const messageInput = document.getElementById('messageInput');
+            const messageText = messageInput.value;
+            if (messageText && currentChatId) {
+                fetch(`/message`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
                         'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        chatId: currentChatId,
-                        text: message,
-                    }),
+                    body: JSON.stringify({ chatId: currentChatId, text: messageText }),
                 })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Сообщение отправлено:', data);
-                    document.getElementById('messageInput').value = ''; // Очистка поля ввода
-                    loadMessages(currentChatId); // Перезагрузка сообщений
+                .then(response => {
+                    if (response.ok) {
+                        messageInput.value = ''; // Очистка поля ввода
+                        loadMessages(currentChatId); // Обновление сообщений
+                    }
                 })
-                .catch(error => {
-                    console.error('Ошибка:', error);
-                });
+                .catch(error => console.error('Ошибка отправки сообщения:', error));
             }
-        });
+        };
 
         // Создание нового чата
         document.getElementById('createChatButton').addEventListener('click', function() {
-            const chatName = prompt("Введите название нового чата:");
-            if (chatName) {
-                fetch('/chat/create', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    },
-                    body: JSON.stringify({ name: chatName }),
-                })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Чат создан:', data);
-                    loadChats(); // Обновление списка чатов
-                })
-                .catch(error => {
-                    console.error('Ошибка создания чата:', error);
-                });
-            }
-        });
-
-        // Поиск друзей
-        document.getElementById('searchButton').addEventListener('click', function() {
-            const searchQuery = document.getElementById('friendSearch').value;
-            fetch(`/friends/search?query=${searchQuery}`, {
+            fetch('/friends', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -197,18 +202,63 @@
             })
             .then(response => response.json())
             .then(friends => {
-                const friendList = document.getElementById('friendList');
-                friendList.innerHTML = ''; // Очистка списка перед загрузкой новых данных
+                const friendSelectionList = document.getElementById('friendSelectionList');
+                friendSelectionList.innerHTML = ''; // Очистка списка перед загрузкой новых данных
+
                 friends.forEach(friend => {
                     const li = document.createElement('li');
                     li.textContent = friend.name; // Предполагаем, что у друга есть поле `name`
-                    friendList.appendChild(li);
+                    li.onclick = () => {
+                        li.classList.toggle('selected'); // Добавляем/убираем выделение
+                    };
+                    friendSelectionList.appendChild(li);
                 });
+
+                // Показываем модальное окно
+                document.getElementById('createChatModal').style.display = 'block';
             })
-            .catch(error => console.error('Ошибка поиска друзей:', error));
+            .catch(error => {
+                console.error('Ошибка загрузки друзей:', error);
+            });
         });
 
-        // Инициализация приложения
+        // Подтверждение создания чата
+        document.getElementById('confirmCreateChatButton').addEventListener('click', function() {
+            const selectedFriends = Array.from(document.querySelectorAll('#friendSelectionList li.selected'))
+                .map(li => li.textContent); // Получаем имена выбранных друзей
+
+            if (selectedFriends.length > 0) {
+                const chatName = prompt("Введите название нового чата:");
+                if (chatName) {
+                    fetch('/chat/create', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        },
+                        body: JSON.stringify({ name: chatName, friends: selectedFriends }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Чат создан:', data);
+                        loadChats(); // Обновление списка чатов
+                        document.getElementById('createChatModal').style.display = 'none'; // Закрываем модальное окно
+                    })
+                    .catch(error => {
+                        console.error('Ошибка создания чата:', error);
+                    });
+                }
+            } else {
+                alert("Выберите хотя бы одного друга для создания чата.");
+            }
+        });
+
+        // Отмена создания чата
+        document.getElementById('cancelCreateChatButton').onclick = () => {
+            document.getElementById('createChatModal').style.display = 'none'; // Скрываем модальное окно
+        };
+
+        // Инициализация
         loadChats(); // Загрузка чатов при загрузке страницы
     </script>
 </body>

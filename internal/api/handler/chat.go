@@ -58,11 +58,10 @@ func (h *Handler) createChat(c *gin.Context) {
 
 		if existingChatID != 0 {
 			c.JSON(http.StatusOK, gin.H{"chat_id": existingChatID})
-			return // Чат уже существует, возвращаем его ID
+			return
 		}
 	}
 
-	// Создаем чат (только если он не существует)
 	chatID, err := h.services.Chat.CreateChat(input.ChatName, participantIDs...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
