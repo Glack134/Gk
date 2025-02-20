@@ -5,18 +5,29 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/polyk005/message/internal/api/service"
+	"github.com/polyk005/message/pkg/websocket"
 )
 
 type Handler struct {
 	services *service.Service
+	hub      *websocket.Hub
 }
 
 func NewHandler(services *service.Service) *Handler {
-	return &Handler{services: services}
+	hub := websocket.NewHub()
+	go hub.Run()
+
+	return &Handler{
+		services: services,
+		hub:      hub,
+	}
 }
 
 func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.Default()
+
+	hub := websocket.NewHub()
+	go hub.Run()
 
 	// Статические файлы
 	router.Static("/static", "./frontend/static")
@@ -26,6 +37,10 @@ func (h *Handler) InitRoutes() *gin.Engine {
 
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", nil)
+	})
+
+	router.GET("/ws", func(c *gin.Context) {
+		hub.HandleWebSocket(c.Writer, c.Request)
 	})
 
 	router.GET("/login.html", func(c *gin.Context) {
@@ -57,6 +72,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		chat.POST("/create", h.createChat)
 		chat.POST("/chats", h.getChatsForUser)
 		chat.POST("/add-participant", h.addParticipant)
+		chat.DELETE("/delete", h.deleteChat)
 	}
 
 	message := router.Group("/message")

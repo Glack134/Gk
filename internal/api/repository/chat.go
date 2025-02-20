@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"strings"
 
 	"github.com/polyk005/message/internal/model"
 )
@@ -14,8 +15,7 @@ func NewChatRepository(db *sql.DB) *ChatRepository {
 	return &ChatRepository{db: db}
 }
 
-func (r *ChatRepository) CreateChat(userID, participantID int, chatName string) (int, error) {
-	// Создаем новый чат
+func (r *ChatRepository) CreateChat(chatName string, userIDs ...int) (int, error) {
 	var newChatID int
 	query := `INSERT INTO chats (name) VALUES ($1) RETURNING id`
 	err := r.db.QueryRow(query, chatName).Scan(&newChatID)
@@ -23,14 +23,12 @@ func (r *ChatRepository) CreateChat(userID, participantID int, chatName string) 
 		return 0, err
 	}
 
-	err = r.AddUserToChat(newChatID, userID)
-	if err != nil {
-		return 0, err
-	}
-
-	err = r.AddUserToChat(newChatID, participantID)
-	if err != nil {
-		return 0, err
+	// Добавляем участников в чат
+	for _, userID := range userIDs {
+		err := r.AddUserToChat(newChatID, userID)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	return newChatID, nil
@@ -107,16 +105,23 @@ func (r *ChatRepository) GetUserIDByUsername(username string) (int, error) {
 	return userID, nil
 }
 
-func (r *ChatRepository) ChatExistsBetweenUsers(userID1, userID2 int) (int, error) {
+func (r *ChatRepository) ChatExistsBetweenUsers(userIDs ...int) (int, error) {
 	var chatID int
 	query := `
-		SELECT c.id 
-		FROM chats c
-		JOIN chat_participants cp1 ON c.id = cp1.chat_id
-		JOIN chat_participants cp2 ON c.id = cp2.chat_id
-		WHERE cp1.user_id = $1 AND cp2.user_id = $2
-	`
-	err := r.db.QueryRow(query, userID1, userID2).Scan(&chatID)
+        SELECT c.id 
+        FROM chats c
+        JOIN chat_participants cp ON c.id = cp.chat_id
+        WHERE cp.user_id IN (` + strings.Repeat("?,", len(userIDs)-1) + `?)
+        GROUP BY c.id
+        HAVING COUNT(DISTINCT cp.user_id) = ?
+    `
+	args := make([]interface{}, len(userIDs)+1)
+	for i, id := range userIDs {
+		args[i] = id
+	}
+	args[len(userIDs)] = len(userIDs)
+
+	err := r.db.QueryRow(query, args...).Scan(&chatID)
 	if err == sql.ErrNoRows {
 		return 0, nil
 	}
@@ -124,4 +129,16 @@ func (r *ChatRepository) ChatExistsBetweenUsers(userID1, userID2 int) (int, erro
 		return 0, err
 	}
 	return chatID, nil
+}
+
+func (r *ChatRepository) DeleteChatForAll(chatID int) error {
+	query := `DELETE FROM chats WHERE id = $1`
+	_, err := r.db.Exec(query, chatID)
+	return err
+}
+
+func (r *ChatRepository) DeleteChatForUser(chatID, userID int) error {
+	query := `DELETE FROM chat_participants WHERE chat_id = $1 AND user_id = $2`
+	_, err := r.db.Exec(query, chatID, userID)
+	return err
 }

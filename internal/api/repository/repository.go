@@ -10,14 +10,16 @@ type Authorization interface {
 	GetUser(email, password string) (model.User, error)
 }
 type Chat interface {
-	CreateChat(userID, participantID int, chatName string) (int, error)
+	CreateChat(chatName string, userIDs ...int) (int, error)
 	AddUserToChat(chatID, userID int) error
 	AddParticipant(chatID, userID int) error
 	GetUserChats(userID int) ([]Chat, error)
 	UserExists(username string) (bool, error)
 	ChatExists(userID int) (int, error)
 	GetUserIDByUsername(username string) (int, error)
-	ChatExistsBetweenUsers(userID1, userID2 int) (int, error)
+	ChatExistsBetweenUsers(userIDs ...int) (int, error)
+	DeleteChatForAll(chatID int) error
+	DeleteChatForUser(chatID, userID int) error
 }
 
 type Message interface {

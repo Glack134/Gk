@@ -12,8 +12,8 @@ func NewChatService(repo *repository.ChatRepository) *ChatService {
 	return &ChatService{repo: repo}
 }
 
-func (s *ChatService) CreateChat(userID, participantID int, chatName string) (int, error) {
-	return s.repo.CreateChat(userID, participantID, chatName)
+func (s *ChatService) CreateChat(chatName string, userIDs ...int) (int, error) {
+	return s.repo.CreateChat(chatName, userIDs...)
 }
 
 func (s *ChatService) AddParticipant(chatID, userID int) error {
@@ -47,4 +47,12 @@ func (s *ChatService) ChatExistsBetweenUsers(userID1, userID2 int) (int, error) 
 
 func (s *ChatService) GetUserIDByUsername(username string) (int, error) {
 	return s.repo.GetUserIDByUsername(username)
+}
+
+func (s *ChatService) DeleteChatForAll(chatID int) error {
+	return s.repo.DeleteChatForAll(chatID)
+}
+
+func (s *ChatService) DeleteChatForUser(chatID, userID int) error {
+	return s.repo.DeleteChatForUser(chatID, userID)
 }

@@ -38,14 +38,44 @@
             padding: 10px;
             margin-top: 5px;
         }
+        #searchContainer {
+            margin-bottom: 20px;
+        }
+        .chat-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        .chat-item img {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .profile-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
     </style>
 </head>
 <body>
     <div id="sidebar">
         <h2>Мои чаты</h2>
+        <div>
+            <img src="path/to/profile-icon.jpg" alt="Профиль" class="profile-icon">
+            <span>{{ .Username }}</span>
+        </div>
         <ul id="chatList">
             <!-- Список чатов будет загружен здесь -->
         </ul>
+        <div id="searchContainer">
+            <input type="text" id="friendSearch" placeholder="Поиск друзей" />
+            <button id="searchButton">Найти</button>
+            <ul id="friendList"></ul>
+        </div>
+        <button id="createChatButton">Создать новый чат</button>
     </div>
     <div id="chat">
         <div id="messages">
@@ -72,7 +102,8 @@
                 chatList.innerHTML = ''; // Очистка списка перед загрузкой новых данных
                 chats.forEach(chat => {
                     const li = document.createElement('li');
-                    li.textContent = chat.name; // Предполагаем, что у чата есть поле `name`
+                    li.className = 'chat-item';
+                    li.innerHTML = `<img src="${chat.profilePic || 'path/to/default-pic.jpg'}" alt="${chat.name}"> ${chat.name}`; // Предполагаем, что у чата есть поле `name` и `profilePic`
                     li.onclick = () => {
                         currentChatId = chat.id; // Сохраняем ID текущего чата
                         loadMessages(chat.id); // Загружаем сообщения для выбранного чата
@@ -94,7 +125,7 @@
             .then(response => response.json())
             .then(messages => {
                 const messagesDiv = document.getElementById('messages');
-                messagesDiv.innerHTML = ''; // Очистка сообщений перед загрузкой новых
+                messagesDiv.innerHTML = ''; // Очистка сообщений перед загрузкой
                 messages.forEach(message => {
                     const messageDiv = document.createElement('div');
                     messageDiv.className = 'message';
@@ -132,8 +163,53 @@
             }
         });
 
-        // Загрузка чатов при загрузке страницы
-        loadChats();
+        // Создание нового чата
+        document.getElementById('createChatButton').addEventListener('click', function() {
+            const chatName = prompt("Введите название нового чата:");
+            if (chatName) {
+                fetch('/chat/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    },
+                    body: JSON.stringify({ name: chatName }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Чат создан:', data);
+                    loadChats(); // Обновление списка чатов
+                })
+                .catch(error => {
+                    console.error('Ошибка создания чата:', error);
+                });
+            }
+        });
+
+        // Поиск друзей
+        document.getElementById('searchButton').addEventListener('click', function() {
+            const searchQuery = document.getElementById('friendSearch').value;
+            fetch(`/friends/search?query=${searchQuery}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                },
+            })
+            .then(response => response.json())
+            .then(friends => {
+                const friendList = document.getElementById('friendList');
+                friendList.innerHTML = ''; // Очистка списка перед загрузкой новых данных
+                friends.forEach(friend => {
+                    const li = document.createElement('li');
+                    li.textContent = friend.name; // Предполагаем, что у друга есть поле `name`
+                    friendList.appendChild(li);
+                });
+            })
+            .catch(error => console.error('Ошибка поиска друзей:', error));
+        });
+
+        // Инициализация приложения
+        loadChats(); // Загрузка чатов при загрузке страницы
     </script>
 </body>
 </html>
