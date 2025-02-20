@@ -46,15 +46,22 @@ func (r *ChatRepository) AddParticipant(chatID, userID int) error {
 
 func (r *ChatRepository) GetUserChats(userID int) ([]model.ChatWithParticipants, error) {
 	var chats []model.ChatWithParticipants
+
+	// Получаем имя пользователя
+	var username string
+	err := r.db.QueryRow("SELECT username FROM users WHERE id = $1", userID).Scan(&username)
+	if err != nil {
+		return nil, err
+	}
+
 	query := `
-		SELECT c.id, c.name, array_agg(u.username) as participants
+		SELECT c.id, c.name, array_agg(DISTINCT u.username) as participants
 		FROM chats c
 		JOIN chat_participants cp ON c.id = cp.chat_id
 		JOIN users u ON cp.user_id = u.id
-		WHERE cp.user_id = $1
 		GROUP BY c.id
 	`
-	rows, err := r.db.Query(query, userID)
+	rows, err := r.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -62,11 +69,27 @@ func (r *ChatRepository) GetUserChats(userID int) ([]model.ChatWithParticipants,
 
 	for rows.Next() {
 		var chat model.ChatWithParticipants
-		var participants pq.StringArray // Используйте pq.StringArray для сканирования массива строк
+		var participants pq.StringArray
 		if err := rows.Scan(&chat.ID, &chat.Name, &participants); err != nil {
 			return nil, err
 		}
-		chat.Participants = participants // Присвойте значение участникам
+
+		// Добавляем реальное имя пользователя в список участников, если его там нет
+		participants = append(participants, username)
+		chat.Participants = participants
+
+		// Удаляем дубликаты
+		uniqueParticipants := make(map[string]struct{})
+		for _, participant := range chat.Participants {
+			uniqueParticipants[participant] = struct{}{}
+		}
+
+		// Преобразуем обратно в срез
+		chat.Participants = make([]string, 0, len(uniqueParticipants))
+		for participant := range uniqueParticipants {
+			chat.Participants = append(chat.Participants, participant)
+		}
+
 		chats = append(chats, chat)
 	}
 
