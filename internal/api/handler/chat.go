@@ -26,12 +26,9 @@ func (h *Handler) createChat(c *gin.Context) {
 		return
 	}
 
-	if input.ChatName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Chat name cannot be empty"})
-		return
-	}
-
 	var participantIDs []int
+	var chatName string
+
 	for _, username := range input.Usernames {
 		participantID, err := h.services.Chat.GetUserIDByUsername(username)
 		if err != nil {
@@ -43,12 +40,19 @@ func (h *Handler) createChat(c *gin.Context) {
 			return
 		}
 		participantIDs = append(participantIDs, participantID)
+
+		if chatName == "" {
+			chatName = username
+		}
 	}
 
-	participantIDs = append(participantIDs, userID) // Добавляем текущего пользователя
-	sort.Ints(participantIDs)                       // Сортируем ID пользователей
+	if input.ChatName != "" {
+		chatName = input.ChatName
+	}
 
-	// Проверяем, является ли это чатом один на один
+	participantIDs = append(participantIDs, userID)
+	sort.Ints(participantIDs)
+
 	if len(participantIDs) == 2 {
 		existingChatID, err := h.services.Chat.FindExistingChat(participantIDs)
 		if err != nil {
@@ -62,7 +66,7 @@ func (h *Handler) createChat(c *gin.Context) {
 		}
 	}
 
-	chatID, err := h.services.Chat.CreateChat(input.ChatName, participantIDs...)
+	chatID, err := h.services.Chat.CreateChat(chatName, participantIDs...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

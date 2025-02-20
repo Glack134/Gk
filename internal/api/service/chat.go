@@ -39,8 +39,9 @@ func (s *ChatService) GetChatsForUser(userID int) ([]map[string]interface{}, err
 	var result []map[string]interface{}
 	for _, chat := range chats {
 		result = append(result, map[string]interface{}{
-			"id":   chat.ID,
-			"name": chat.Name,
+			"id":           chat.ID,
+			"name":         chat.Name,
+			"participants": chat.Participants,
 		})
 	}
 

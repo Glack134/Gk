@@ -13,7 +13,7 @@ type Chat interface {
 	CreateChat(chatName string, userIDs ...int) (int, error)
 	AddUserToChat(chatID, userID int) error
 	AddParticipant(chatID, userID int) error
-	GetUserChats(userID int) ([]Chat, error)
+	GetUserChats(userID int) ([]model.ChatWithParticipants, error)
 	UserExists(username string) (bool, error)
 	ChatExists(userID int) (int, error)
 	GetUserIDByUsername(username string) (int, error)

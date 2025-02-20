@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"sort"
 
+	"github.com/lib/pq"
 	"github.com/polyk005/message/internal/model"
 )
 
@@ -43,13 +44,15 @@ func (r *ChatRepository) AddParticipant(chatID, userID int) error {
 	return r.AddUserToChat(chatID, userID)
 }
 
-func (r *ChatRepository) GetUserChats(userID int) ([]model.Chat, error) {
-	var chats []model.Chat
+func (r *ChatRepository) GetUserChats(userID int) ([]model.ChatWithParticipants, error) {
+	var chats []model.ChatWithParticipants
 	query := `
-		SELECT c.id, c.name 
+		SELECT c.id, c.name, array_agg(u.username) as participants
 		FROM chats c
 		JOIN chat_participants cp ON c.id = cp.chat_id
+		JOIN users u ON cp.user_id = u.id
 		WHERE cp.user_id = $1
+		GROUP BY c.id
 	`
 	rows, err := r.db.Query(query, userID)
 	if err != nil {
@@ -58,10 +61,12 @@ func (r *ChatRepository) GetUserChats(userID int) ([]model.Chat, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var chat model.Chat
-		if err := rows.Scan(&chat.ID, &chat.Name); err != nil {
+		var chat model.ChatWithParticipants
+		var participants pq.StringArray // Используйте pq.StringArray для сканирования массива строк
+		if err := rows.Scan(&chat.ID, &chat.Name, &participants); err != nil {
 			return nil, err
 		}
+		chat.Participants = participants // Присвойте значение участникам
 		chats = append(chats, chat)
 	}
 
