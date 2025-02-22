@@ -1,6 +1,12 @@
 package websocket
 
-import "log"
+import (
+	"database/sql"
+	"log"
+
+	"github.com/polyk005/message/internal/api/repository"
+	"github.com/polyk005/message/internal/api/service"
+)
 
 type Message struct {
 	Type    string      `json:"type"`
@@ -17,10 +23,14 @@ type Hub struct {
 	Broadcast  chan Message
 	Register   chan *Client
 	Unregister chan *Client
+	services   *service.Service
 }
 
-func NewHub() *Hub {
+func NewHub(db *sql.DB) *Hub {
 	return &Hub{
+		services: &service.Service{
+			Message: repository.NewMessageRepository(db),
+		},
 		Clients:    make(map[*Client]bool),
 		Broadcast:  make(chan Message),
 		Register:   make(chan *Client),

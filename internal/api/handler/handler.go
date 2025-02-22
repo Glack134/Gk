@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -13,8 +14,8 @@ type Handler struct {
 	hub      *websocket.Hub
 }
 
-func NewHandler(services *service.Service) *Handler {
-	hub := websocket.NewHub()
+func NewHandler(services *service.Service, db *sql.DB) *Handler {
+	hub := websocket.NewHub(db)
 	go hub.Run()
 
 	return &Handler{
@@ -25,9 +26,6 @@ func NewHandler(services *service.Service) *Handler {
 
 func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.Default()
-
-	hub := websocket.NewHub()
-	go hub.Run()
 
 	// Статические файлы
 	router.Static("/static", "./frontend/static")
@@ -40,7 +38,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	})
 
 	router.GET("/ws", func(c *gin.Context) {
-		hub.HandleWebSocket(c.Writer, c.Request)
+		h.hub.HandleWebSocket(c.Writer, c.Request)
 	})
 
 	router.GET("/login.html", func(c *gin.Context) {
