@@ -15,7 +15,9 @@ type Authorization interface {
 
 type User interface {
 	GetUserProfile(userID int) (*model.User, error)
-	UpdateUserProfile(user *model.User) error
+	UpdateUserProfile(user *model.User_update) error
+	ValidateResetCode(code string) (bool, error)
+	UpdateUserEmail(userID int, newEmail string) error
 }
 
 type Chat interface {

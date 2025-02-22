@@ -27,8 +27,14 @@ func (r *UserRepository) GetUserID(userID int) (*model.User, error) {
 	return &user, nil
 }
 
-func (r *UserRepository) UpdateUser(user *model.User) error {
-	query := `UPDATE users SET username = $1 WHERE id = $1`
+func (r *UserRepository) UpdateUser(user *model.User_update) error {
+	query := `UPDATE users SET username = $1 WHERE id = $2`
 	_, err := r.db.Exec(query, user.Username, user.Id)
+	return err
+}
+
+func (r *UserRepository) UpdateUserEmail(userID int, newEmail string) error {
+	query := `UPDATE users SET email = $1 WHERE id = $2`
+	_, err := r.db.Exec(query, newEmail, userID)
 	return err
 }

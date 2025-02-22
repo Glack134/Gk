@@ -7,3 +7,11 @@ type User struct {
 	Password string `json:"password" binding:"required"`
 	Email    string `json:"email" binding:"required"`
 }
+
+type User_update struct {
+	Id       int     `json:"id" db:"-"`
+	Country  *string `json:"country,omitempty"`
+	Username *string `json:"username,omitempty"`
+	Password *string `json:"password,omitempty"`
+	Email    *string `json:"email,omitempty"`
+}

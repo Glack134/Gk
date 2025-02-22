@@ -8,6 +8,7 @@ import (
 type User interface {
 	GetUserID(userID int) (*model.User, error)
 	UpdateUser(user *model.User) error
+	UpdateUserEmail(userID int, newEmail string) error
 }
 
 type Authorization interface {

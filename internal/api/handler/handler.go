@@ -68,7 +68,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	profile.Use(h.AuthMiddleware)
 	{
 		profile.GET("/", h.GetProfile)
-		profile.PUT("/", h.UpdateProfile)
+		profile.PUT("/update", h.UpdateProfile)
 	}
 
 	chat := router.Group("/chat")
