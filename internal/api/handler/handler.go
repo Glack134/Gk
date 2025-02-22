@@ -64,6 +64,13 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		auth.POST("/sign-in", h.signIn)
 	}
 
+	profile := router.Group("/profile")
+	profile.Use(h.AuthMiddleware)
+	{
+		profile.GET("/", h.GetProfile)
+		profile.PUT("/", h.UpdateProfile)
+	}
+
 	chat := router.Group("/chat")
 	chat.Use(h.AuthMiddleware)
 	{

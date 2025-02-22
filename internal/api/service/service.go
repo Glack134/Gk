@@ -13,6 +13,11 @@ type Authorization interface {
 	HashPassword(password string) (string, error)
 }
 
+type User interface {
+	GetUserProfile(userID int) (*model.User, error)
+	UpdateUserProfile(user *model.User) error
+}
+
 type Chat interface {
 	CreateChat(chatName string, userIDs ...int) (int, error)
 	AddParticipant(chatID, userID int) error
@@ -49,6 +54,7 @@ type Subscription interface {
 
 type Service struct {
 	Authorization Authorization
+	User          User
 	Chat          Chat
 	Message       Message
 	Notification  Notification
@@ -59,6 +65,7 @@ type Service struct {
 func NewService(repos *repository.Repository) *Service {
 	return &Service{
 		Authorization: NewAuthService(repos.Authorization),
+		User:          NewUserService(repos.User),
 		Chat:          NewChatService(repos.Chat),
 		Message:       NewMessageService(repos.Message),
 		Notification:  NewNotificationService(repos.Notification),

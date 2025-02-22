@@ -5,6 +5,11 @@ import (
 	"github.com/polyk005/message/internal/model"
 )
 
+type User interface {
+	GetUserID(userID int) (*model.User, error)
+	UpdateUser(user *model.User) error
+}
+
 type Authorization interface {
 	CreateUser(user model.User) (int, error)
 	GetUser(email, password string) (model.User, error)
@@ -47,6 +52,7 @@ type Subscription interface {
 
 type Repository struct {
 	Authorization Authorization
+	User          *UserRepository
 	Chat          *ChatRepository
 	Message       *MessageRepository
 	Notification  *NotificationRepository
@@ -56,6 +62,7 @@ type Repository struct {
 
 func NewRepository(db *sqlx.DB) *Repository {
 	return &Repository{
+		User:          NewUserRepository(db.DB),
 		Authorization: NewAuthPostgres(db),
 		Chat:          NewChatRepository(db.DB),
 		Message:       NewMessageRepository(db.DB),
