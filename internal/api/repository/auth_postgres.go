@@ -1,7 +1,9 @@
 package repository
 
 import (
+	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/polyk005/message/internal/model"
@@ -27,6 +29,12 @@ func (r *AuthPostgres) CreateUser(user model.User) (int, error) {
 	return id, nil
 }
 
+func (r *AuthPostgres) SaveResetToken(userID int, token string, expiry time.Time) error {
+	query := "INSERT INTO reset_tokens (user_id, token, expiry) VALUES ($1, $2, $3)"
+	_, err := r.db.Exec(query, userID, token, expiry)
+	return err
+}
+
 func (r *AuthPostgres) GetUser(email, password string) (model.User, error) {
 	var user model.User
 	query := fmt.Sprintf("SELECT id FROM %s WHERE email=$1 AND password_hash=$2", usersTable)
@@ -46,4 +54,76 @@ func (r *AuthPostgres) GetUserByEmail(email string) (string, error) {
 	query := fmt.Sprintf("SELECT phone FROM %s WHERE email = $1", usersTable)
 	err := r.db.Get(&phone, query, email)
 	return phone, err
+}
+
+func (r *AuthPostgres) GetTokenResetPassword(email string) (int, time.Time, error) {
+	var userID int
+	var lastSent sql.NullTime
+	query := fmt.Sprintf("SELECT id, last_sent FROM %s WHERE email = $1", usersTable) // Изменено на id
+	err := r.db.QueryRow(query, email).Scan(&userID, &lastSent)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, time.Time{}, fmt.Errorf("пользователь с таким email не найден")
+		}
+		return 0, time.Time{}, err
+	}
+
+	if lastSent.Valid {
+		return userID, lastSent.Time, nil
+	}
+
+	return userID, time.Time{}, nil
+}
+
+// Получаем userID по токену
+func (r *AuthPostgres) GetUserIDByToken(token string) (int, error) {
+	var userID int
+	query := "SELECT user_id FROM reset_tokens WHERE token=$1 AND expiry > NOW()"
+	err := r.db.QueryRow(query, token).Scan(&userID)
+	if err != nil {
+		return 0, err
+	}
+	return userID, nil
+}
+
+// Обновляем пароль пользователя по userID
+func (r *AuthPostgres) UpdatePasswordUserByID(userID int, newPasswordHash string) error {
+	query := "UPDATE users SET password_hash=$1 WHERE id=$2"
+	_, err := r.db.Exec(query, newPasswordHash, userID)
+	return err
+}
+
+func (r *AuthPostgres) UpdatePasswordUser(username, newPasswordHash string) (model.User, error) {
+	var user model.User
+	query := fmt.Sprintf("UPDATE %s SET password_hash = $1 WHERE username = $2 RETURNING id, username, email", usersTable)
+	err := r.db.QueryRow(query, newPasswordHash, username).Scan(&user.Id, &user.Username, &user.Email)
+	if err != nil {
+		return model.User{}, err
+	}
+	return user, nil
+}
+
+func (r *AuthPostgres) MarkTokenAsUsed(token string) error {
+	query := "UPDATE reset_tokens SET used = TRUE WHERE token=$1"
+	_, err := r.db.Exec(query, token)
+	return err
+}
+
+func (r *AuthPostgres) IsTokenUsed(token string) (bool, error) {
+	var isUsed bool
+	query := "SELECT used FROM reset_tokens WHERE token = $1"
+	err := r.db.QueryRow(query, token).Scan(&isUsed)
+	if err != nil {
+		return false, err
+	}
+	return isUsed, nil
+}
+
+func (r *AuthPostgres) GetLastSentTime(token string) (time.Time, error) {
+	var lastSentAt time.Time
+	err := r.db.QueryRow("SELECT last_sent_at FROM reset_tokens WHERE token = $1", token).Scan(&lastSentAt)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return lastSentAt, nil
 }

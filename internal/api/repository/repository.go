@@ -11,13 +11,23 @@ type User interface {
 	GetUserID(userID int) (*model.User, error)
 	UpdateUser(user *model.User) error
 	UpdateUserEmail(userID int, newEmail string) error
-	GetTokenResetPassword(email string) (int, time.Time, error)
 }
 
 type Authorization interface {
 	CreateUser(user model.User) (int, error)
 	GetUser(email, password string) (model.User, error)
+	GetUserIDByToken(token string) (int, error)
+	UpdatePasswordUserByID(userID int, newPasswordHash string) error
+	MarkTokenAsUsed(token string) error
+	IsTokenUsed(token string) (bool, error)
+	GetLastSentTime(token string) (time.Time, error)
 }
+
+type SendPassword interface {
+	GetTokenResetPassword(email string) (int, time.Time, error)
+	SaveResetToken(userID int, token string, expiry time.Time) error
+}
+
 type Chat interface {
 	CreateChat(chatName string, userIDs ...int) (int, error)
 	AddUserToChat(chatID, userID int) error
@@ -56,6 +66,7 @@ type Subscription interface {
 
 type Repository struct {
 	Authorization Authorization
+	SendPassword  SendPassword
 	User          *UserRepository
 	Chat          *ChatRepository
 	Message       *MessageRepository
@@ -68,6 +79,7 @@ func NewRepository(db *sqlx.DB) *Repository {
 	return &Repository{
 		User:          NewUserRepository(db.DB),
 		Authorization: NewAuthPostgres(db),
+		SendPassword:  NewResetPostgres(db),
 		Chat:          NewChatRepository(db.DB),
 		Message:       NewMessageRepository(db.DB),
 		Notification:  NewNotificationRepository(db.DB),

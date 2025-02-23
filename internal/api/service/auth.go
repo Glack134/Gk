@@ -70,6 +70,35 @@ func (s *AuthService) ParseToken(accessToken string) (int, error) {
 	return claims.UserId, nil
 }
 
+func (s *AuthService) UpdatePasswordUserToken(token, newPassword string) error {
+	isUsed, err := s.repo.IsTokenUsed(token)
+	if err != nil {
+		return err
+	}
+	if isUsed {
+		return errors.New("token has already been used")
+	}
+
+	userID, err := s.repo.GetUserIDByToken(token)
+	if err != nil {
+		return err
+	}
+
+	newPasswordHash := s.generatePasswordHash(newPassword)
+
+	err = s.repo.UpdatePasswordUserByID(userID, newPasswordHash)
+	if err != nil {
+		return err
+	}
+
+	err = s.repo.MarkTokenAsUsed(token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *AuthService) generatePasswordHash(password string) string {
 	hash := sha1.New()
 	hash.Write([]byte(password))
@@ -80,4 +109,16 @@ func (s *AuthService) generatePasswordHash(password string) string {
 func (s *AuthService) HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	return string(bytes), err
+}
+
+func (s *AuthService) CheckToken(token string) error {
+	isUsed, err := s.repo.IsTokenUsed(token)
+	if err != nil {
+		return err
+	}
+	if isUsed {
+		return errors.New("token has already been used")
+	}
+
+	return nil
 }

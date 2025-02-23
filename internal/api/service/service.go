@@ -9,8 +9,14 @@ type Authorization interface {
 	CreateUser(user model.User) (int, error)
 	GenerateToken(username, password string) (string, error)
 	ParseToken(accessToken string) (int, error)
-	generatePasswordHash(password string) string
 	HashPassword(password string) (string, error)
+	UpdatePasswordUserToken(token, newPassword string) error
+	CheckToken(token string) error
+}
+
+type SendPassword interface {
+	CreateResetToken(email string) (string, error)
+	sendEmail(from string, password string, to string, subject string, body string) error
 }
 
 type User interface {
@@ -55,18 +61,20 @@ type Subscription interface {
 }
 
 type Service struct {
-	Authorization Authorization
-	User          User
-	Chat          Chat
-	Message       Message
-	Notification  Notification
-	Payment       Payment
-	Subscription  Subscription
+	Authorization
+	SendPassword
+	User
+	Chat
+	Message
+	Notification
+	Payment
+	Subscription
 }
 
 func NewService(repos *repository.Repository) *Service {
 	return &Service{
 		Authorization: NewAuthService(repos.Authorization),
+		SendPassword:  NewSendPassword(repos.SendPassword),
 		User:          NewUserService(repos.User),
 		Chat:          NewChatService(repos.Chat),
 		Message:       NewMessageService(repos.Message),
