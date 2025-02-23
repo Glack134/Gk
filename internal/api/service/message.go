@@ -10,6 +10,10 @@ func NewMessageService(repo *repository.MessageRepository) *MessageService {
 	return &MessageService{repo: repo}
 }
 
+func (s *MessageService) GetMessages(chatID string) ([]repository.Message, error) {
+	return s.repo.GetMessages(chatID)
+}
+
 func (s *MessageService) SendMessage(chatID, userID int, content string) (int, error) {
 	return s.repo.SendMessage(chatID, userID, content)
 }

@@ -1,9 +1,9 @@
 package websocket
 
 import (
-	"database/sql"
 	"log"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/polyk005/message/internal/api/repository"
 	"github.com/polyk005/message/internal/api/service"
 )
@@ -26,7 +26,7 @@ type Hub struct {
 	services   *service.Service
 }
 
-func NewHub(db *sql.DB) *Hub {
+func NewHub(db *sqlx.DB) *Hub {
 	return &Hub{
 		services: &service.Service{
 			Message: repository.NewMessageRepository(db),

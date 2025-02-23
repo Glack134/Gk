@@ -6,6 +6,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func (h *Handler) getMessages(c *gin.Context) {
+	chatID := c.Param("chat_id")
+
+	messages, err := h.services.Message.GetMessages(chatID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, messages)
+}
+
 func (h *Handler) sendMessage(c *gin.Context) {
 	var input struct {
 		ChatID  int    `json:"chat_id"`

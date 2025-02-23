@@ -1,15 +1,20 @@
 package repository
 
-import (
-	"database/sql"
-)
+import "github.com/jmoiron/sqlx"
 
 type MessageRepository struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
-func NewMessageRepository(db *sql.DB) *MessageRepository {
+func NewMessageRepository(db *sqlx.DB) *MessageRepository {
 	return &MessageRepository{db: db}
+}
+
+func (r *MessageRepository) GetMessages(chatID string) ([]Message, error) {
+	var messages []Message
+	query := "SELECT * FROM messages WHERE chat_id = $1 ORDER BY created_at ASC"
+	err := r.db.Select(&messages, query, chatID)
+	return messages, err
 }
 
 func (r *MessageRepository) SendMessage(chatID, userID int, content string) (int, error) {

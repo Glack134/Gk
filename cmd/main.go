@@ -36,7 +36,7 @@ func main() {
 
 	repos := repository.NewRepository(db)
 	services := service.NewService(repos)
-	handlers := handler.NewHandler(services, db.DB)
+	handlers := handler.NewHandler(services, db)
 
 	srv := new(internal.Server)
 	if err := srv.Run(viper.GetString("port"), handlers.InitRoutes()); err != nil {

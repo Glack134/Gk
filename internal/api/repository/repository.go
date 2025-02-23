@@ -81,7 +81,7 @@ func NewRepository(db *sqlx.DB) *Repository {
 		Authorization: NewAuthPostgres(db),
 		SendPassword:  NewResetPostgres(db),
 		Chat:          NewChatRepository(db.DB),
-		Message:       NewMessageRepository(db.DB),
+		Message:       NewMessageRepository(db),
 		Notification:  NewNotificationRepository(db.DB),
 		Payment:       NewPaymentRepository(db.DB),
 		Subscription:  NewSubscriptionRepository(db.DB),

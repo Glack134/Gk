@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"database/sql"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	"github.com/polyk005/message/internal/api/service"
 	"github.com/polyk005/message/pkg/websocket"
 )
@@ -14,7 +14,7 @@ type Handler struct {
 	hub      *websocket.Hub
 }
 
-func NewHandler(services *service.Service, db *sql.DB) *Handler {
+func NewHandler(services *service.Service, db *sqlx.DB) *Handler {
 	hub := websocket.NewHub(db)
 	go hub.Run()
 
@@ -84,6 +84,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	message := router.Group("/message")
 	message.Use(h.AuthMiddleware)
 	{
+		message.GET("/chat/:chat_id/messages", h.getMessages)
 		message.POST("/send", h.sendMessage)
 		message.PUT("/edit", h.editMessage)
 		message.DELETE("/:id", h.deleteMessage)
