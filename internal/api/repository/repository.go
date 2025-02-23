@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"time"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/polyk005/message/internal/model"
 )
@@ -9,6 +11,7 @@ type User interface {
 	GetUserID(userID int) (*model.User, error)
 	UpdateUser(user *model.User) error
 	UpdateUserEmail(userID int, newEmail string) error
+	GetTokenResetPassword(email string) (int, time.Time, error)
 }
 
 type Authorization interface {

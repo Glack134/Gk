@@ -9,7 +9,7 @@ type User struct {
 }
 
 type User_update struct {
-	Id       int     `json:"id" db:"-"`
+	Id       int     `json:"id"`
 	Country  *string `json:"country,omitempty"`
 	Username *string `json:"username,omitempty"`
 	Password *string `json:"password,omitempty"`

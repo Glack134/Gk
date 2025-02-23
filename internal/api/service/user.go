@@ -25,6 +25,6 @@ func (s *UserService) UpdateUserEmail(userID int, newEmail string) error {
 	return s.repo.UpdateUserEmail(userID, newEmail)
 }
 
-func (s *UserService) ValidateResetCode(code string) (bool, error) {
-	return true, nil
+func (s *UserService) ValidateResetCode(code string) (string, error) {
+	return s.ValidateResetCode(code)
 }
