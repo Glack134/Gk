@@ -12,6 +12,8 @@ type Authorization interface {
 	HashPassword(password string) (string, error)
 	UpdatePasswordUserToken(token, newPassword string) error
 	CheckToken(token string) error
+	EnableTwoFA(userID int) (string, error)
+	VerifyTwoFACode(userID int, code string) (bool, error)
 }
 
 type SendPassword interface {

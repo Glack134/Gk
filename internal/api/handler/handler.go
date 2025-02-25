@@ -27,6 +27,8 @@ func NewHandler(services *service.Service, db *sqlx.DB) *Handler {
 func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.Default()
 
+	router.Use(h.rateLimitMiddleware)
+
 	// Статические файлы
 	router.Static("/static", "./frontend/static")
 
@@ -70,6 +72,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	{
 		profile.GET("/", h.GetProfile)
 		profile.PUT("/update", h.UpdateProfile)
+		profile.POST("/enable", h.EnableTwoFA) // Новый маршрут для включения 2FA
+		profile.POST("/verify", h.VerifyTwoFA)
 	}
 
 	chat := router.Group("/chat")

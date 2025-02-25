@@ -19,9 +19,7 @@ func NewAuthPostgres(db *sqlx.DB) *AuthPostgres {
 
 func (r *AuthPostgres) CreateUser(user model.User) (int, error) {
 	var id int
-
 	query := fmt.Sprintf(`INSERT INTO %s (country, username, password_hash, email) VALUES ($1, $2, $3, $4) RETURNING id`, usersTable)
-
 	row := r.db.QueryRow(query, user.Сountry, user.Username, user.Password, user.Email)
 	if err := row.Scan(&id); err != nil {
 		return 0, err
@@ -59,7 +57,7 @@ func (r *AuthPostgres) GetUserByEmail(email string) (string, error) {
 func (r *AuthPostgres) GetTokenResetPassword(email string) (int, time.Time, error) {
 	var userID int
 	var lastSent sql.NullTime
-	query := fmt.Sprintf("SELECT id, last_sent FROM %s WHERE email = $1", usersTable) // Изменено на id
+	query := fmt.Sprintf("SELECT id, last_sent FROM %s WHERE email = $1", usersTable)
 	err := r.db.QueryRow(query, email).Scan(&userID, &lastSent)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -126,4 +124,19 @@ func (r *AuthPostgres) GetLastSentTime(token string) (time.Time, error) {
 		return time.Time{}, err
 	}
 	return lastSentAt, nil
+}
+
+//2fa
+
+func (r *AuthPostgres) UpdateTwoFASecret(userID int, secret string) error {
+	query := "UPDATE users SET two_fa_secret = $1, is_two_fa_enabled = TRUE WHERE id = $2"
+	_, err := r.db.Exec(query, secret, userID)
+	return err
+}
+
+func (r *AuthPostgres) GetTwoFASecret(userID int) (string, error) {
+	var secret string
+	query := "SELECT two_fa_secret FROM users WHERE id = $1"
+	err := r.db.QueryRow(query, userID).Scan(&secret)
+	return secret, err
 }

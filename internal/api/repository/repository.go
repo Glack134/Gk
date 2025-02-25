@@ -21,6 +21,8 @@ type Authorization interface {
 	MarkTokenAsUsed(token string) error
 	IsTokenUsed(token string) (bool, error)
 	GetLastSentTime(token string) (time.Time, error)
+	UpdateTwoFASecret(userID int, secret string) error
+	GetTwoFASecret(userID int) (string, error)
 }
 
 type SendPassword interface {

@@ -1,8 +1,11 @@
 package handler
 
 import (
+	"image/png"
 	"net/http"
 
+	"github.com/boombuler/barcode"
+	"github.com/boombuler/barcode/qr"
 	"github.com/gin-gonic/gin"
 	"github.com/polyk005/message/internal/model"
 )
@@ -126,4 +129,74 @@ func (h *Handler) UpdatePasswordHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, map[string]interface{}{
 		"message": "Пароль успешно обновлен",
 	})
+}
+
+// 2fa
+func (h *Handler) EnableTwoFA(c *gin.Context) {
+	userId, err := getUserId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	url, err := h.services.Authorization.EnableTwoFA(userId)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Генерируем QR-код
+	qrCode, err := qr.Encode(url, qr.L, qr.Auto)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, "failed to generate QR code")
+		return
+	}
+
+	// Сохраняем QR-код в формате PNG
+	qrCode, err = barcode.Scale(qrCode, 200, 200) // Масштабируем QR-код
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, "failed to scale QR code")
+		return
+	}
+
+	// Устанавливаем заголовки для ответа
+	c.Header("Content-Type", "image/png")
+	c.Status(http.StatusOK)
+
+	// Отправляем QR-код в ответе
+	if err := png.Encode(c.Writer, qrCode); err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, "failed to send QR code")
+		return
+	}
+}
+
+func (h *Handler) VerifyTwoFA(c *gin.Context) {
+	var input struct {
+		Code string `json:"code" binding:"required"`
+	}
+
+	if err := c.BindJSON(&input); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	userId, err := getUserId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	valid, err := h.services.Authorization.VerifyTwoFACode(userId, input.Code)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if !valid {
+		newErrorResponse(c, http.StatusUnauthorized, "invalid 2FA code")
+		return
+	}
+
+	// Успешная проверка кода 2FA
+	c.JSON(http.StatusOK, gin.H{"message": "2FA verification successful"})
 }

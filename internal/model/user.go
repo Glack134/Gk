@@ -3,12 +3,14 @@ package model
 import "time"
 
 type User struct {
-	Id         int    `json:"-" db:"id"`
-	Сountry    string `json:"country" binding:"required"`
-	Username   string `json:"username" binding:"required"`
-	Password   string `json:"password" binding:"required"`
-	Email      string `json:"email" binding:"required"`
-	ResetToken string `json:"reset_token" db:"reset_token"`
+	Id             int    `json:"-" db:"id"`
+	Сountry        string `json:"country" binding:"required"`
+	Username       string `json:"username" binding:"required"`
+	Password       string `json:"password" binding:"required"`
+	Email          string `json:"email" binding:"required"`
+	ResetToken     string `json:"reset_token" db:"reset_token"`
+	TwoFASecret    string `json:"two_fa_secret" db:"two_fa_secret"`
+	IsTwoFAEnabled bool   `json:"is_two_fa_enabled" db:"is_two_fa_enabled"`
 }
 
 type User_update struct {

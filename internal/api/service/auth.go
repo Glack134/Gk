@@ -9,6 +9,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/polyk005/message/internal/api/repository"
 	"github.com/polyk005/message/internal/model"
+	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -121,4 +122,34 @@ func (s *AuthService) CheckToken(token string) error {
 	}
 
 	return nil
+}
+
+// 2fa
+func (s *AuthService) EnableTwoFA(userID int) (string, error) {
+	// Генерируем новый секрет TOTP
+	secret, err := totp.Generate(totp.GenerateOpts{
+		AccountName: "YourAppName", // Название вашего приложения
+		Issuer:      "YourIssuer",  // Название вашего издателя
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// Сохраняем секрет в базе данных
+	err = s.repo.UpdateTwoFASecret(userID, secret.Secret())
+	if err != nil {
+		return "", err
+	}
+
+	return secret.URL(), nil // Возвращаем URL для генерации QR-кода
+}
+
+// VerifyTwoFACode проверяет код TOTP, введенный пользователем
+func (s *AuthService) VerifyTwoFACode(userID int, code string) (bool, error) {
+	secret, err := s.repo.GetTwoFASecret(userID)
+	if err != nil {
+		return false, err
+	}
+
+	return totp.Validate(code, secret), nil
 }
