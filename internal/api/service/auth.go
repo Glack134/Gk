@@ -128,8 +128,8 @@ func (s *AuthService) CheckToken(token string) error {
 func (s *AuthService) EnableTwoFA(userID int) (string, error) {
 	// Генерируем новый секрет TOTP
 	secret, err := totp.Generate(totp.GenerateOpts{
-		AccountName: "YourAppName", // Название вашего приложения
-		Issuer:      "YourIssuer",  // Название вашего издателя
+		AccountName: "2FA", // Название вашего приложения
+		Issuer:      "Gk",  // Название вашего издателя
 	})
 	if err != nil {
 		return "", err
@@ -141,10 +141,9 @@ func (s *AuthService) EnableTwoFA(userID int) (string, error) {
 		return "", err
 	}
 
-	return secret.URL(), nil // Возвращаем URL для генерации QR-кода
+	return secret.URL(), nil
 }
 
-// VerifyTwoFACode проверяет код TOTP, введенный пользователем
 func (s *AuthService) VerifyTwoFACode(userID int, code string) (bool, error) {
 	secret, err := s.repo.GetTwoFASecret(userID)
 	if err != nil {
@@ -152,4 +151,17 @@ func (s *AuthService) VerifyTwoFACode(userID int, code string) (bool, error) {
 	}
 
 	return totp.Validate(code, secret), nil
+}
+
+func (s *AuthService) DisableTwoFA(userId int) error {
+	isEnabled, err := s.repo.IsTwoFAEnabled(userId)
+	if err != nil {
+		return err
+	}
+
+	if !isEnabled {
+		return errors.New("Two-Factor Authentication is not enabled")
+	}
+
+	return s.repo.DisableTwoFA(userId)
 }

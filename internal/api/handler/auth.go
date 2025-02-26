@@ -200,3 +200,19 @@ func (h *Handler) VerifyTwoFA(c *gin.Context) {
 	// Успешная проверка кода 2FA
 	c.JSON(http.StatusOK, gin.H{"message": "2FA verification successful"})
 }
+
+func (h *Handler) DisableTwoFA(c *gin.Context) {
+	userId, err := getUserId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	err = h.services.Authorization.DisableTwoFA(userId)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Two-Factor Authentication disabled"})
+}

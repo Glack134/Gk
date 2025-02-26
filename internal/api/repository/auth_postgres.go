@@ -140,3 +140,20 @@ func (r *AuthPostgres) GetTwoFASecret(userID int) (string, error) {
 	err := r.db.QueryRow(query, userID).Scan(&secret)
 	return secret, err
 }
+
+func (r *AuthPostgres) DisableTwoFA(userID int) error {
+	query := "UPDATE users SET is_two_fa_enabled = FALSE WHERE id = $1"
+	_, err := r.db.Exec(query, userID)
+	return err
+}
+
+// Метод для проверки, включена ли 2FA для пользователя
+func (r *AuthPostgres) IsTwoFAEnabled(userID int) (bool, error) {
+	var isEnabled bool
+	query := "SELECT is_two_fa_enabled FROM users WHERE id = $1"
+	err := r.db.QueryRow(query, userID).Scan(&isEnabled)
+	if err != nil {
+		return false, err
+	}
+	return isEnabled, nil
+}

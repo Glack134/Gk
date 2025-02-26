@@ -14,6 +14,7 @@ type Authorization interface {
 	CheckToken(token string) error
 	EnableTwoFA(userID int) (string, error)
 	VerifyTwoFACode(userID int, code string) (bool, error)
+	DisableTwoFA(userId int) error
 }
 
 type SendPassword interface {

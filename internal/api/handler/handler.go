@@ -72,7 +72,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	{
 		profile.GET("/", h.GetProfile)
 		profile.PUT("/update", h.UpdateProfile)
-		profile.POST("/enable", h.EnableTwoFA) // Новый маршрут для включения 2FA
+		profile.POST("/enable", h.EnableTwoFA)
 		profile.POST("/verify", h.VerifyTwoFA)
 	}
 

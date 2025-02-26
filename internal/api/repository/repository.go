@@ -23,6 +23,8 @@ type Authorization interface {
 	GetLastSentTime(token string) (time.Time, error)
 	UpdateTwoFASecret(userID int, secret string) error
 	GetTwoFASecret(userID int) (string, error)
+	DisableTwoFA(userID int) error
+	IsTwoFAEnabled(userID int) (bool, error)
 }
 
 type SendPassword interface {
