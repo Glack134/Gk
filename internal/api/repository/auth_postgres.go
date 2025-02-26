@@ -33,11 +33,21 @@ func (r *AuthPostgres) SaveResetToken(userID int, token string, expiry time.Time
 	return err
 }
 
-func (r *AuthPostgres) GetUser(email, password string) (model.User, error) {
+func (r *AuthPostgres) GetUser(email string, password string, checkPassword bool) (model.User, error) {
 	var user model.User
-	query := fmt.Sprintf("SELECT id FROM %s WHERE email=$1 AND password_hash=$2", usersTable)
-	err := r.db.Get(&user, query, email, password)
-	return user, err
+	var query string
+
+	if checkPassword {
+		// Проверяем и email, и пароль
+		query = fmt.Sprintf("SELECT id FROM %s WHERE email=$1 AND password_hash=$2", usersTable)
+		err := r.db.Get(&user, query, email, password)
+		return user, err
+	} else {
+		// Проверяем только email
+		query = "SELECT id, email FROM users WHERE email=$1"
+		err := r.db.Get(&user, query, email)
+		return user, err
+	}
 }
 
 func (r *AuthPostgres) GetUserByPhone(phone string) (string, error) {
@@ -138,6 +148,9 @@ func (r *AuthPostgres) GetTwoFASecret(userID int) (string, error) {
 	var secret string
 	query := "SELECT two_fa_secret FROM users WHERE id = $1"
 	err := r.db.QueryRow(query, userID).Scan(&secret)
+	if err == sql.ErrNoRows {
+		return "", fmt.Errorf("no 2FA secret found for user with ID %d", userID)
+	}
 	return secret, err
 }
 

@@ -2,6 +2,7 @@ package service
 
 import (
 	"crypto/sha1"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -39,7 +40,8 @@ func (s *AuthService) CreateUser(user model.User) (int, error) {
 }
 
 func (s *AuthService) GenerateToken(username, password string) (string, error) {
-	user, err := s.repo.GetUser(username, s.generatePasswordHash(password))
+	// Указываем, что нужно проверять пароль
+	user, err := s.repo.GetUser(username, s.generatePasswordHash(password), true)
 	if err != nil {
 		return "", err
 	}
@@ -124,19 +126,22 @@ func (s *AuthService) CheckToken(token string) error {
 	return nil
 }
 
-func (s *AuthService) GetUser(email, password string) (model.User, error) {
-	// Вызываем метод GetUser  из репозитория
-	user, err := s.repo.GetUser(email, password)
+func (s *AuthService) GetUser(email, password string, checkPassword bool) (model.User, error) {
+	var hashedPassword string
+	if checkPassword {
+		hashedPassword = s.generatePasswordHash(password)
+	}
+
+	user, err := s.repo.GetUser(email, hashedPassword, checkPassword)
 	if err != nil {
-		return model.User{}, err // Возвращаем ошибку, если произошла ошибка при получении пользователя
+		return model.User{}, err
 	}
 
-	// Проверяем, существует ли пользователь и совпадают ли email и пароль
-	if user.Id == 0 {
-		return model.User{}, fmt.Errorf("invalid email or password") // Возвращаем ошибку, если пользователь не найден
+	if checkPassword && user.Id == 0 {
+		return model.User{}, errors.New("invalid email or password")
 	}
 
-	return user, nil // Возвращаем пользователя, если всё в порядке
+	return user, nil
 }
 
 // 2fa
@@ -162,10 +167,19 @@ func (s *AuthService) EnableTwoFA(userID int) (string, error) {
 func (s *AuthService) VerifyTwoFACode(userID int, code string) (bool, error) {
 	secret, err := s.repo.GetTwoFASecret(userID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, fmt.Errorf("no 2FA secret found for user with ID %d", userID)
+		}
 		return false, err
 	}
 
-	return totp.Validate(code, secret), nil
+	fmt.Printf("Verifying 2FA code for userID: %d, code: %s, secret: %s\n", userID, code, secret)
+	valid := totp.Validate(code, secret)
+	if !valid {
+		fmt.Println("Invalid 2FA code")
+		return false, nil
+	}
+	return true, nil
 }
 
 func (s *AuthService) DisableTwoFA(userId int) error {

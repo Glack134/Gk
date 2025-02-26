@@ -15,7 +15,7 @@ type User interface {
 
 type Authorization interface {
 	CreateUser(user model.User) (int, error)
-	GetUser(email, password string) (model.User, error)
+	GetUser(email string, password string, checkPassword bool) (model.User, error)
 	GetUserIDByToken(token string) (int, error)
 	UpdatePasswordUserByID(userID int, newPasswordHash string) error
 	MarkTokenAsUsed(token string) error
