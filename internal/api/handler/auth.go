@@ -220,7 +220,17 @@ func (h *Handler) EnableTwoFA(c *gin.Context) {
 		return
 	}
 
-	// Генерируем новый секрет TOTP и получаем URL
+	isTwoFAEnabled, err := h.services.Authorization.IsTwoFAEnabled(userId)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, "failed to check 2FA status")
+		return
+	}
+
+	if isTwoFAEnabled {
+		newErrorResponse(c, http.StatusBadRequest, "2FA is already enabled for this user")
+		return
+	}
+
 	url, err := h.services.Authorization.EnableTwoFA(userId)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
