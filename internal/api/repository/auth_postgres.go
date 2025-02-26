@@ -157,3 +157,9 @@ func (r *AuthPostgres) IsTwoFAEnabled(userID int) (bool, error) {
 	}
 	return isEnabled, nil
 }
+
+func (r *AuthPostgres) ActivateTwoFA(userId int) error {
+	query := "UPDATE users SET two_fa_enabled = TRUE WHERE id = $1"
+	_, err := r.db.Exec(query, userId)
+	return err
+}

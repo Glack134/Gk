@@ -15,6 +15,9 @@ type Authorization interface {
 	EnableTwoFA(userID int) (string, error)
 	VerifyTwoFACode(userID int, code string) (bool, error)
 	DisableTwoFA(userId int) error
+	ConfirmTwoFA(userId int, code string) error
+	IsTwoFAEnabled(userID int) (bool, error)
+	GetUser(email, password string) (model.User, error)
 }
 
 type SendPassword interface {

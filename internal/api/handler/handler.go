@@ -64,6 +64,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	{
 		auth.POST("/sign-up", h.signUp)
 		auth.POST("/sign-in", h.signIn)
+		auth.POST("/verify-2fa", h.verifyTwoFALogin)
 		auth.POST("/reset_password", h.requestPasswordReset)
 	}
 
@@ -74,6 +75,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		profile.PUT("/update", h.UpdateProfile)
 		profile.POST("/enable", h.EnableTwoFA)
 		profile.POST("/verify", h.VerifyTwoFA)
+		profile.POST("/disable", h.DisableTwoFA)
 	}
 
 	chat := router.Group("/chat")

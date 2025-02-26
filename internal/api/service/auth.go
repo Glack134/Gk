@@ -124,6 +124,21 @@ func (s *AuthService) CheckToken(token string) error {
 	return nil
 }
 
+func (s *AuthService) GetUser(email, password string) (model.User, error) {
+	// Вызываем метод GetUser  из репозитория
+	user, err := s.repo.GetUser(email, password)
+	if err != nil {
+		return model.User{}, err // Возвращаем ошибку, если произошла ошибка при получении пользователя
+	}
+
+	// Проверяем, существует ли пользователь и совпадают ли email и пароль
+	if user.Id == 0 {
+		return model.User{}, fmt.Errorf("invalid email or password") // Возвращаем ошибку, если пользователь не найден
+	}
+
+	return user, nil // Возвращаем пользователя, если всё в порядке
+}
+
 // 2fa
 func (s *AuthService) EnableTwoFA(userID int) (string, error) {
 	// Генерируем новый секрет TOTP
@@ -164,4 +179,31 @@ func (s *AuthService) DisableTwoFA(userId int) error {
 	}
 
 	return s.repo.DisableTwoFA(userId)
+}
+
+func (s *AuthService) ConfirmTwoFA(userId int, code string) error {
+	secret, err := s.repo.GetTwoFASecret(userId)
+	if err != nil {
+		return fmt.Errorf("failed to get 2FA secret: %w", err)
+	}
+
+	isValid := validateTwoFACode(secret, code)
+	if !isValid {
+		return fmt.Errorf("invalid confirmation code")
+	}
+
+	err = s.repo.ActivateTwoFA(userId)
+	if err != nil {
+		return fmt.Errorf("failed to activate 2FA: %w", err)
+	}
+
+	return nil
+}
+
+func validateTwoFACode(secret, code string) bool {
+	return totp.Validate(code, secret)
+}
+
+func (s *AuthService) IsTwoFAEnabled(userID int) (bool, error) {
+	return s.repo.IsTwoFAEnabled(userID)
 }

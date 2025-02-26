@@ -25,6 +25,7 @@ type Authorization interface {
 	GetTwoFASecret(userID int) (string, error)
 	DisableTwoFA(userID int) error
 	IsTwoFAEnabled(userID int) (bool, error)
+	ActivateTwoFA(userId int) error
 }
 
 type SendPassword interface {
