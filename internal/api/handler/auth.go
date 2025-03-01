@@ -1,14 +1,75 @@
 package handler
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"encoding/base64"
+	"errors"
+	"fmt"
 	"image/png"
+	"io"
+	"log"
 	"net/http"
+	"os"
+	"strconv"
 
 	"github.com/boombuler/barcode"
 	"github.com/boombuler/barcode/qr"
 	"github.com/gin-gonic/gin"
 	"github.com/polyk005/message/internal/model"
 )
+
+func validateKey(key []byte) error {
+	switch len(key) {
+	case 16, 24, 32:
+		return nil
+	default:
+		return fmt.Errorf("invalid key size: %d (must be 16, 24, or 32 bytes)", len(key))
+	}
+}
+
+func encrypt(plaintext string, key []byte) (string, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
+	iv := ciphertext[:aes.BlockSize]
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return "", err
+	}
+
+	stream := cipher.NewCFBEncrypter(block, iv)
+	stream.XORKeyStream(ciphertext[aes.BlockSize:], []byte(plaintext))
+
+	return base64.URLEncoding.EncodeToString(ciphertext), nil
+}
+
+func decrypt(ciphertext string, key []byte) (string, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	decodedCiphertext, err := base64.URLEncoding.DecodeString(ciphertext)
+	if err != nil {
+		return "", err
+	}
+
+	if len(decodedCiphertext) < aes.BlockSize {
+		return "", errors.New("ciphertext too short")
+	}
+
+	iv := decodedCiphertext[:aes.BlockSize]
+	decodedCiphertext = decodedCiphertext[aes.BlockSize:]
+
+	stream := cipher.NewCFBDecrypter(block, iv)
+	stream.XORKeyStream(decodedCiphertext, decodedCiphertext)
+
+	return string(decodedCiphertext), nil
+}
 
 func (h *Handler) signUp(c *gin.Context) {
 	var input model.User
@@ -37,54 +98,71 @@ type signInInput struct {
 func (h *Handler) signIn(c *gin.Context) {
 	var input signInInput
 
-	// Парсим входные данные
 	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		log.Printf("Ошибка привязки JSON: %v", err)
+		newErrorResponse(c, http.StatusBadRequest, "Неверный формат входных данных")
 		return
 	}
 
-	// Проверяем пароль и получаем пользователя
+	log.Printf("Получены данные: %+v", input)
+
 	user, err := h.services.Authorization.GetUser(input.Email, input.Password, true)
 	if err != nil {
-		newErrorResponse(c, http.StatusUnauthorized, "Invalid email or password")
+		log.Printf("Ошибка получения пользователя: %v", err)
+		newErrorResponse(c, http.StatusUnauthorized, "Неверный email или пароль")
 		return
 	}
 
-	// Проверяем, включена ли 2FA для пользователя
+	log.Printf("Найден пользователь: %+v", user)
+
 	isTwoFAEnabled, err := h.services.Authorization.IsTwoFAEnabled(user.Id)
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, "Failed to check 2FA status")
+		log.Printf("Ошибка проверки статуса 2FA: %v", err)
+		newErrorResponse(c, http.StatusInternalServerError, "Ошибка проверки статуса 2FA")
 		return
 	}
 
 	if isTwoFAEnabled {
-		// Если 2FA включена, возвращаем сообщение о необходимости ввести код
+		key := []byte(os.Getenv("ENCRYPTION_KEY"))
+		if err := validateKey(key); err != nil {
+			log.Printf("Неверный ключ шифрования: %v", err)
+			newErrorResponse(c, http.StatusInternalServerError, "Неверный ключ шифрования")
+			return
+		}
+
+		encryptedUserID, err := encrypt(fmt.Sprintf("%d", user.Id), key)
+		if err != nil {
+			log.Printf("Ошибка шифрования ID пользователя: %v", err)
+			newErrorResponse(c, http.StatusInternalServerError, "Ошибка шифрования ID пользователя")
+			return
+		}
+
 		c.JSON(http.StatusOK, gin.H{
-			"message":      "2FA is enabled. Please provide the 2FA code.",
+			"message":      "2FA включен. Пожалуйста, введите код 2FA.",
 			"requires_2fa": true,
-			"user_id":      user.Id, // Передаем ID пользователя для проверки кода
+			"user_id":      encryptedUserID,
 		})
 		return
 	}
 
-	// Если 2FA не включена, генерируем access token и refresh token
 	accessToken, err := h.services.Authorization.GenerateAccessToken(user.Id)
 	if err != nil {
+		log.Printf("Failed to generate access token: %v", err)
 		newErrorResponse(c, http.StatusInternalServerError, "Failed to generate access token")
 		return
 	}
 
 	refreshToken, err := h.services.Authorization.GenerateRefreshToken(user.Id)
 	if err != nil {
+		log.Printf("Failed to generate refresh token: %v", err)
 		newErrorResponse(c, http.StatusInternalServerError, "Failed to generate refresh token")
 		return
 	}
 
-	// Устанавливаем токены в куки
-	c.SetCookie("auth_token", accessToken, 3600, "/", "localhost", false, true)          // Access token
-	c.SetCookie("refresh_token", refreshToken, 7*24*3600, "/", "localhost", false, true) // Refresh token
+	domain := os.Getenv("COOKIE_DOMAIN")
+	c.SetCookie("auth_token", accessToken, 3600, "/", domain, false, true)
+	c.SetCookie("refresh_token", refreshToken, 7*24*3600, "/", domain, false, true)
 
-	// Возвращаем токены и сообщение об успешной аутентификации
 	c.JSON(http.StatusOK, gin.H{
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
@@ -95,40 +173,62 @@ func (h *Handler) signIn(c *gin.Context) {
 
 func (h *Handler) verifyTwoFALogin(c *gin.Context) {
 	var input struct {
-		UserID int    `json:"user_id" binding:"required"`
-		Code   string `json:"code" binding:"required"`
+		EncryptedUserID string `json:"user_id" binding:"required"` // Изменено на string
+		Code            string `json:"code" binding:"required"`
 	}
 
 	if err := c.BindJSON(&input); err != nil {
+		log.Printf("Ошибка привязки JSON: %v", err)
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	// Дешифруем userId
+	key := []byte(os.Getenv("ENCRYPTION_KEY"))
+	decryptedUserID, err := decrypt(input.EncryptedUserID, key) // Теперь это строка
+	if err != nil {
+		log.Printf("Ошибка дешифрования: %v", err)
+		newErrorResponse(c, http.StatusBadRequest, "Failed to decrypt user ID")
+		return
+	}
+
+	// Преобразуем расшифрованный ID в int
+	userID, err := strconv.Atoi(decryptedUserID)
+	if err != nil {
+		log.Printf("Ошибка преобразования UserID: %v", err)
+		newErrorResponse(c, http.StatusBadRequest, "Invalid user ID format")
+		return
+	}
+
 	// Проверяем код 2FA
-	valid, err := h.services.Authorization.VerifyTwoFACode(input.UserID, input.Code)
+	valid, err := h.services.Authorization.VerifyTwoFACode(userID, input.Code)
 	if err != nil || !valid {
+		log.Printf("Неверный код 2FA: %v", err)
 		newErrorResponse(c, http.StatusUnauthorized, "Invalid 2FA code")
 		return
 	}
 
-	// Генерируем access token и refresh token
-	accessToken, err := h.services.Authorization.GenerateAccessToken(input.UserID)
+	// Генерируем токены
+	accessToken, err := h.services.Authorization.GenerateAccessToken(userID)
 	if err != nil {
+		log.Printf("Ошибка генерации access token: %v", err)
 		newErrorResponse(c, http.StatusInternalServerError, "Failed to generate access token")
 		return
 	}
 
-	refreshToken, err := h.services.Authorization.GenerateRefreshToken(input.UserID)
+	refreshToken, err := h.services.Authorization.GenerateRefreshToken(userID)
 	if err != nil {
+		log.Printf("Ошибка генерации refresh token: %v", err)
 		newErrorResponse(c, http.StatusInternalServerError, "Failed to generate refresh token")
 		return
 	}
 
 	// Устанавливаем токены в куки
-	c.SetCookie("auth_token", accessToken, 3600, "/", "localhost", false, true)          // Access token
-	c.SetCookie("refresh_token", refreshToken, 7*24*3600, "/", "localhost", false, true) // Refresh token
+	domain := os.Getenv("COOKIE_DOMAIN")
+	c.SetCookie("auth_token", accessToken, 3600, "/", domain, false, true)
+	c.SetCookie("refresh_token", refreshToken, 7*24*3600, "/", domain, false, true)
 
-	// Возвращаем токены и сообщение об успешной аутентификации
+	// Возвращаем успешный ответ
 	c.JSON(http.StatusOK, gin.H{
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
