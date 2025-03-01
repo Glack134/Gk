@@ -5,8 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/jmoiron/sqlx"
 	"github.com/polyk005/message/internal/model"
+)
+
+const (
+	Token = "GSfas16va9vjq$nf1!nb&$visjdig"
 )
 
 type AuthPostgres struct {
@@ -175,4 +180,51 @@ func (r *AuthPostgres) ActivateTwoFA(userId int) error {
 	query := "UPDATE users SET two_fa_enabled = TRUE WHERE id = $1"
 	_, err := r.db.Exec(query, userId)
 	return err
+}
+
+func (r *AuthPostgres) GenerateToken(userId int, ttl time.Duration) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
+		ExpiresAt: time.Now().Add(ttl).Unix(),
+		IssuedAt:  time.Now().Unix(),
+		Subject:   fmt.Sprintf("%d", userId),
+	})
+
+	signedToken, err := token.SignedString([]byte(Token))
+	if err != nil {
+		return "", err
+	}
+
+	return signedToken, nil
+}
+
+func (r *AuthPostgres) SaveRefreshToken(UserId int, refreshToken string) error {
+	query := `INSERT INTO refresh_tokens (user_id, token) VALUES ($1, $2)`
+	_, err := r.db.Exec(query, UserId, refreshToken)
+	return err
+}
+
+func (r *AuthPostgres) ValidateRefreshToken(refreshToken string) (int, error) {
+	var userId int
+	query := `SELECT user_id FROM refresh_tokens WHERE token = $1`
+	err := r.db.Get(&userId, query, refreshToken)
+	if err != nil {
+		return 0, nil
+	}
+	return userId, nil
+}
+
+func (r *AuthPostgres) BlacklistToken(token string) error {
+	query := `INSERT INTO blacklisted_tokens (token) VALUES ($1)`
+	_, err := r.db.Exec(query, token)
+	return err
+}
+
+func (r *AuthPostgres) IsTokenBlacklisted(token string) (bool, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM blacklisted_tokens WHERE token = $1`
+	err := r.db.Get(&count, query, token)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

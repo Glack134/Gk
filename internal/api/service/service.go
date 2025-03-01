@@ -18,6 +18,11 @@ type Authorization interface {
 	ConfirmTwoFA(userId int, code string) error
 	IsTwoFAEnabled(userID int) (bool, error)
 	GetUser(email, password string, checkPassword bool) (model.User, error)
+	GenerateAccessToken(userId int) (string, error)
+	GenerateRefreshToken(userId int) (string, error)
+	ValidateRefreshToken(refreshToken string) (int, error)
+	BlacklistToken(token string) error
+	IsTokenBlacklisted(token string) (bool, error)
 }
 
 type SendPassword interface {

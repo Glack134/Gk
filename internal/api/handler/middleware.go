@@ -2,7 +2,6 @@ package handler
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -26,11 +25,11 @@ var (
 func (h *Handler) rateLimitMiddleware(c *gin.Context) {
 	ip := c.ClientIP()
 
-	// Исключаем localhost из rate limiting
-	// if ip == "::1" || ip == "127.0.0.1" {
-	// 	c.Next()
-	// 	return
-	// }
+	//Исключаем localhost из rate limiting
+	if ip == "::1" || ip == "127.0.0.1" {
+		c.Next()
+		return
+	}
 
 	mu.Lock()
 	if bannedIPs[ip] {
@@ -98,25 +97,44 @@ func getUserId(c *gin.Context) (int, error) {
 }
 
 func (h *Handler) AuthMiddleware(c *gin.Context) {
-	header := c.GetHeader(authorizationHeader)
-	if header == "" {
-		newErrorResponse(c, http.StatusUnauthorized, "empty auth header")
+	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+	c.Header("Pragma", "no-cache")
+	c.Header("Expires", "0")
+
+	// Получаем куку с токеном
+	token, err := c.Cookie("auth_token")
+	if err != nil {
+		h.logger.Errorf("AuthMiddleware: failed to get auth_token cookie: %v", err)
+		c.Redirect(http.StatusFound, "/login.html")
+		c.Abort()
 		return
 	}
 
-	headerParts := strings.Split(header, " ")
-	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
-		newErrorResponse(c, http.StatusUnauthorized, "invalid auth header")
-		return
-	}
-
-	token := headerParts[1]
+	// Парсим токен
 	userId, err := h.services.Authorization.ParseToken(token)
 	if err != nil {
-		newErrorResponse(c, http.StatusUnauthorized, fmt.Sprintf("invalid token: %s", err.Error()))
+		h.logger.Errorf("AuthMiddleware: failed to parse token: %v", err)
+		c.Redirect(http.StatusFound, "/login.html")
+		c.Abort()
 		return
 	}
 
+	// Проверяем, не находится ли токен в черном списке (если такая функциональность есть)
+	isBlacklisted, err := h.services.Authorization.IsTokenBlacklisted(token)
+	if err != nil {
+		h.logger.Errorf("AuthMiddleware: failed to check token blacklist: %v", err)
+		c.Redirect(http.StatusFound, "/login.html")
+		c.Abort()
+		return
+	}
+	if isBlacklisted {
+		h.logger.Infof("AuthMiddleware: token is blacklisted for user %d", userId)
+		c.Redirect(http.StatusFound, "/login.html")
+		c.Abort()
+		return
+	}
+
+	// Устанавливаем ID пользователя в контекст
 	c.Set(userCtx, userId)
 	c.Next()
 }

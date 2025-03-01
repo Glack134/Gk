@@ -26,6 +26,11 @@ type Authorization interface {
 	DisableTwoFA(userID int) error
 	IsTwoFAEnabled(userID int) (bool, error)
 	ActivateTwoFA(userId int) error
+	GenerateToken(userId int, ttl time.Duration) (string, error)
+	SaveRefreshToken(UserId int, refreshToken string) error
+	ValidateRefreshToken(refreshToken string) (int, error)
+	BlacklistToken(token string) error
+	IsTokenBlacklisted(token string) (bool, error)
 }
 
 type SendPassword interface {

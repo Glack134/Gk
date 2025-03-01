@@ -34,14 +34,17 @@ func main() {
 		logrus.Fatalf("failed to initialize db: %s", err.Error())
 	}
 
+	logger := logrus.New()
+
 	repos := repository.NewRepository(db)
 	services := service.NewService(repos)
-	handlers := handler.NewHandler(services, db)
+	handlers := handler.NewHandler(services, db, logger)
 
 	srv := new(internal.Server)
 	if err := srv.Run(viper.GetString("port"), handlers.InitRoutes()); err != nil {
 		logrus.Fatalf("error occurred while running http server: %s", err.Error())
 	}
+
 }
 
 func initConfig() error {

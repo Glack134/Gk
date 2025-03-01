@@ -9,20 +9,23 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/polyk005/message/internal/api/service"
 	"github.com/polyk005/message/pkg/websocket"
+	"github.com/sirupsen/logrus"
 )
 
 type Handler struct {
 	services *service.Service
 	hub      *websocket.Hub
+	logger   *logrus.Logger
 }
 
-func NewHandler(services *service.Service, db *sqlx.DB) *Handler {
+func NewHandler(services *service.Service, db *sqlx.DB, logger *logrus.Logger) *Handler {
 	hub := websocket.NewHub(db)
 	go hub.Run()
 
 	return &Handler{
 		services: services,
 		hub:      hub,
+		logger:   logger,
 	}
 }
 
@@ -40,36 +43,6 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	}))
 
 	router.Use(h.rateLimitMiddleware)
-
-	// Статические файлы
-	router.Static("/static", "./frontend/static")
-
-	// Маршруты для HTML страниц
-	router.LoadHTMLGlob("frontend/*.html")
-
-	router.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", nil)
-	})
-
-	router.GET("/ws", func(c *gin.Context) {
-		h.hub.HandleWebSocket(c.Writer, c.Request)
-	})
-
-	router.GET("/login.html", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "login.html", nil)
-	})
-
-	router.GET("/signup.html", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "signup.html", nil)
-	})
-
-	router.GET("/chat.html", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "chat.html", nil)
-	})
-
-	router.GET("/profile.html", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "profile.html", nil)
-	})
 
 	// Группа для аутентификации
 	auth := router.Group("/auth")
@@ -129,6 +102,73 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		notification.POST("/send", h.sendNotification)
 		notification.GET("/:id", h.getNotifications)
 	}
+
+	// Статические файлы
+	router.Static("/static", "./frontend/static")
+
+	// Маршруты для HTML страниц
+	router.LoadHTMLGlob("frontend/*.html")
+
+	router.GET("/ws", func(c *gin.Context) {
+		h.hub.HandleWebSocket(c.Writer, c.Request)
+	})
+
+	router.GET("/", func(c *gin.Context) {
+		// Проверяем, аутентифицирован ли пользователь
+		accessToken, err := c.Cookie("auth_token")
+		if err != nil {
+			// Если access token отсутствует, проверяем refresh token
+			refreshToken, err := c.Cookie("refresh_token")
+			if err != nil {
+				c.Redirect(http.StatusFound, "login.html") // Перенаправляем на страницу входа
+				return
+			}
+
+			// Проверяем действительность refresh token
+			user, err := ValidateRefreshToken(refreshToken) // Ваша функция для валидации refresh token
+			if err != nil {
+				c.Redirect(http.StatusFound, "login.html") // Если refresh token недействителен, перенаправляем на страницу входа
+				return
+			}
+
+			// Генерируем новый access token
+			newAccessToken, err := GenerateAccessToken(user) // Ваша функция для генерации access token
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate new access token"})
+				return
+			}
+
+			// Устанавливаем новый access token в куки
+			c.SetCookie("auth_token", newAccessToken, 3600, "/", "localhost", false, true) // 1 час
+			accessToken = newAccessToken                                                   // Обновляем переменную accessToken
+		}
+
+		// Если access token действителен, перенаправляем на чат
+		c.Redirect(http.StatusFound, "chat.html")
+	})
+
+	router.GET("/login.html", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "login.html", nil)
+	})
+
+	router.GET("/signup.html", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "signup.html", nil)
+	})
+
+	// Защищенные маршруты
+	router.GET("/chat.html", h.AuthMiddleware, func(c *gin.Context) {
+		c.HTML(http.StatusOK, "chat.html", nil)
+	})
+
+	router.GET("/profile.html", h.AuthMiddleware, func(c *gin.Context) {
+		c.HTML(http.StatusOK, "profile.html", nil)
+	})
+
+	router.POST("/auth/logout", func(c *gin.Context) {
+		c.SetCookie("auth_token", "", -1, "/", "localhost", false, true)    // Удаляем access token
+		c.SetCookie("refresh_token", "", -1, "/", "localhost", false, true) // Удаляем refresh token
+		c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+	})
 
 	return router
 }

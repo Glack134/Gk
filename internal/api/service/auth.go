@@ -221,3 +221,27 @@ func validateTwoFACode(secret, code string) bool {
 func (s *AuthService) IsTwoFAEnabled(userID int) (bool, error) {
 	return s.repo.IsTwoFAEnabled(userID)
 }
+
+func (s *AuthService) GenerateAccessToken(userId int) (string, error) {
+	return s.repo.GenerateToken(userId, time.Hour)
+}
+
+func (s *AuthService) GenerateRefreshToken(userId int) (string, error) {
+	return s.repo.GenerateToken(userId, 7*24*time.Hour)
+}
+
+func (s *AuthService) ValidateRefreshToken(refreshToken string) (int, error) {
+	userId, err := s.repo.ValidateRefreshToken(refreshToken)
+	if err != nil {
+		return 0, err
+	}
+	return userId, nil
+}
+
+func (s *AuthService) BlacklistToken(token string) error {
+	return s.repo.BlacklistToken(token)
+}
+
+func (s *AuthService) IsTokenBlacklisted(token string) (bool, error) {
+	return s.repo.IsTokenBlacklisted(token)
+}

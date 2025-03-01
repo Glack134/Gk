@@ -44,7 +44,7 @@ func (h *Handler) signIn(c *gin.Context) {
 	}
 
 	// Проверяем пароль и получаем пользователя
-	user, err := h.services.Authorization.GetUser(input.Email, input.Password, true) // передаем true для проверки пароля
+	user, err := h.services.Authorization.GetUser(input.Email, input.Password, true)
 	if err != nil {
 		newErrorResponse(c, http.StatusUnauthorized, "Invalid email or password")
 		return
@@ -58,42 +58,35 @@ func (h *Handler) signIn(c *gin.Context) {
 	}
 
 	if isTwoFAEnabled {
-		// Если 2FA включена, проверяем код
-		if input.Code == "" {
-			// Если код не предоставлен, возвращаем сообщение
-			c.JSON(http.StatusOK, gin.H{
-				"message":      "2FA is enabled. Please provide the 2FA code.",
-				"requires_2fa": true,
-			})
-			return
-		}
-
-		// Проверяем код 2FA
-		valid, err := h.services.Authorization.VerifyTwoFACode(user.Id, input.Code)
-		if err != nil || !valid {
-			newErrorResponse(c, http.StatusUnauthorized, "Invalid 2FA code")
-			return
-		}
+		// Если 2FA включена, возвращаем сообщение о необходимости ввести код
+		c.JSON(http.StatusOK, gin.H{
+			"message":      "2FA is enabled. Please provide the 2FA code.",
+			"requires_2fa": true,
+			"user_id":      user.Id, // Передаем ID пользователя для проверки кода
+		})
+		return
 	}
 
-	// Если 2FA не включена или код 2FA валиден, генерируем токен и возвращаем его
+	// Если 2FA не включена, генерируем токен и возвращаем его
 	token, err := h.services.Authorization.GenerateToken(input.Email, input.Password)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	c.SetCookie("auth_token", token, 3600, "/", "localhost", false, true)
+
 	c.JSON(http.StatusOK, gin.H{
 		"token":        token,
-		"requires_2fa": true,
+		"requires_2fa": false,
 		"message":      "Login successful",
 	})
 }
 
 func (h *Handler) verifyTwoFALogin(c *gin.Context) {
 	var input struct {
-		Email string `json:"email" binding:"required"`
-		Code  string `json:"code" binding:"required"`
+		UserID int    `json:"user_id" binding:"required"`
+		Code   string `json:"code" binding:"required"`
 	}
 
 	if err := c.BindJSON(&input); err != nil {
@@ -101,31 +94,21 @@ func (h *Handler) verifyTwoFALogin(c *gin.Context) {
 		return
 	}
 
-	// Получаем пользователя по email, проверяя 2FA
-	user, err := h.services.Authorization.GetUser(input.Email, "", false) // Не проверяем пароль
-	if err != nil {
-		newErrorResponse(c, http.StatusUnauthorized, "Invalid email")
-		return
-	}
-
 	// Проверяем код 2FA
-	valid, err := h.services.Authorization.VerifyTwoFACode(user.Id, input.Code)
-	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	if !valid {
+	valid, err := h.services.Authorization.VerifyTwoFACode(input.UserID, input.Code)
+	if err != nil || !valid {
 		newErrorResponse(c, http.StatusUnauthorized, "Invalid 2FA code")
 		return
 	}
 
 	// Генерируем токен и возвращаем его
-	token, err := h.services.Authorization.GenerateToken(user.Email, "")
+	token, err := h.services.Authorization.GenerateToken("", "") // Генерация токена без проверки пароля
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	c.SetCookie("auth_token", token, 3600, "/", "localhost", false, true)
 
 	c.JSON(http.StatusOK, gin.H{
 		"token":   token,

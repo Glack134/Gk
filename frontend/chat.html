@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Chat</h2>
+        <div id="chatMessages"></div>
+        <form id="sendMessageForm">
+            <input type="text" id="messageText" placeholder="Type a message" required>
+            <button type="submit">Send</button>
+        </form>
+        <button onclick="logOut()">Log Out</button>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+    <script>
+        // Подключение к WebSocket
+        const socket = new WebSocket('ws://localhost:8080/ws');
+
+        socket.onmessage = function (event) {
+            const message = JSON.parse(event.data);
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML += `<p>${message.text}</p>`;
+        };
+
+        // Отправка сообщения
+        document.getElementById('sendMessageForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const messageText = document.getElementById('messageText').value;
+
+            const response = await fetch('/message/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text: messageText }),
+                credentials: 'include', // Для отправки кук
+            });
+
+            if (response.ok) {
+                document.getElementById('messageText').value = ''; // Очищаем поле ввода
+            }
+        });
+
+        // Выход из системы
+        function logOut() {
+            fetch('/auth/logout', {
+                method: 'POST',
+                credentials: 'include', // Для отправки кук
+            })
+            .then(() => {
+                window.location.href = '/login.html';
+            });
+        }
+    </script>
+</body>
+</html>

@@ -4,64 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .login-container {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 300px;
-        }
-        .login-container h2 {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .login-container input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        .login-container button {
-            width: 100%;
-            padding: 10px;
-            background-color: #28a745;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .login-container button:hover {
-            background-color: #218838;
-        }
-        .error-message {
-            color: red;
-            text-align: center;
-            margin-top: 10px;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
-    <div class="login-container">
+    <div class="container">
         <h2>Login</h2>
         <form id="loginForm">
             <input type="email" id="email" placeholder="Email" required>
             <input type="password" id="password" placeholder="Password" required>
             <button type="submit">Sign In</button>
         </form>
+        <p>Don't have an account? <a href="/signup.html">Sign Up</a></p>
         <div id="errorMessage" class="error-message"></div>
     </div>
 
+    <script src="/static/js/main.js"></script>
     <script>
         document.getElementById('loginForm').addEventListener('submit', async function (e) {
             e.preventDefault();
@@ -69,27 +26,20 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
 
-            const response = await fetch('http://localhost:8080/auth/sign-in', {
+            const response = await fetch('/auth/sign-in', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ email, password }),
+                credentials: 'include', // Для отправки кук
             });
 
             const result = await response.json();
 
             if (response.ok) {
-                if (result.requires_2fa) {
-                    // Перенаправляем на страницу 2FA
-                    window.location.href = `/`;
-                } else {
-                    // Сохраняем токен и перенаправляем на главную страницу
-                    localStorage.setItem('token', result.token);
-                    window.location.href = '/';
-                }
+                window.location.href = '/chat.html'; // Перенаправляем на страницу чата
             } else {
-                // Показываем ошибку
                 document.getElementById('errorMessage').textContent = result.message || 'Login failed';
             }
         });
