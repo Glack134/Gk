@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2FA Verification</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h2>2FA Verification</h2>
+        <form id="twoFAForm">
+            <input type="text" id="twoFACode" placeholder="Enter 2FA Code" required>
+            <button type="submit">Submit 2FA Code</button>
+        </form>
+        <div id="errorMessage" class="error-message"></div>
+    </div>
+
+    <script src="/static/js/login2fa.js"></script>
+</body>
+</html>

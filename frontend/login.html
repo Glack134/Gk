@@ -14,35 +14,14 @@
             <input type="password" id="password" placeholder="Password" required>
             <button type="submit">Sign In</button>
         </form>
+        <div id="twoFAForm" style="display: none;">
+            <input type="text" id="twoFACode" placeholder="Enter 2FA Code" required>
+            <button id="submit2FA">Submit 2FA Code</button>
+        </div>
         <p>Don't have an account? <a href="/signup.html">Sign Up</a></p>
         <div id="errorMessage" class="error-message"></div>
     </div>
 
-    <script src="/static/js/main.js"></script>
-    <script>
-        document.getElementById('loginForm').addEventListener('submit', async function (e) {
-            e.preventDefault();
-
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-
-            const response = await fetch('/auth/sign-in', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password }),
-                credentials: 'include', // Для отправки кук
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                window.location.href = '/chat.html'; // Перенаправляем на страницу чата
-            } else {
-                document.getElementById('errorMessage').textContent = result.message || 'Login failed';
-            }
-        });
-    </script>
+    <script src="/static/js/login.js"></script>
 </body>
 </html>

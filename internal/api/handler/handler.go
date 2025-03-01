@@ -49,7 +49,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	{
 		auth.POST("/sign-up", h.signUp)
 		auth.POST("/sign-in", h.signIn)
-		auth.POST("/verify2fa", h.verifyTwoFALogin)
+		auth.POST("/verify-2fa", h.verifyTwoFALogin)
 		auth.POST("/reset_password", h.requestPasswordReset)
 	}
 
@@ -109,42 +109,23 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	// Маршруты для HTML страниц
 	router.LoadHTMLGlob("frontend/*.html")
 
+	router.GET("/login2fa.html", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "login2fa.html", nil)
+	})
+
 	router.GET("/ws", func(c *gin.Context) {
 		h.hub.HandleWebSocket(c.Writer, c.Request)
 	})
 
 	router.GET("/", func(c *gin.Context) {
 		// Проверяем, аутентифицирован ли пользователь
-		accessToken, err := c.Cookie("auth_token")
+		_, err := c.Cookie("auth_token")
 		if err != nil {
-			// Если access token отсутствует, проверяем refresh token
-			refreshToken, err := c.Cookie("refresh_token")
-			if err != nil {
-				c.Redirect(http.StatusFound, "login.html") // Перенаправляем на страницу входа
-				return
-			}
-
-			// Проверяем действительность refresh token
-			user, err := ValidateRefreshToken(refreshToken) // Ваша функция для валидации refresh token
-			if err != nil {
-				c.Redirect(http.StatusFound, "login.html") // Если refresh token недействителен, перенаправляем на страницу входа
-				return
-			}
-
-			// Генерируем новый access token
-			newAccessToken, err := GenerateAccessToken(user) // Ваша функция для генерации access token
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate new access token"})
-				return
-			}
-
-			// Устанавливаем новый access token в куки
-			c.SetCookie("auth_token", newAccessToken, 3600, "/", "localhost", false, true) // 1 час
-			accessToken = newAccessToken                                                   // Обновляем переменную accessToken
+			c.Redirect(http.StatusFound, "login.html") // Перенаправляем на страницу входа
+			return
 		}
 
-		// Если access token действителен, перенаправляем на чат
-		c.Redirect(http.StatusFound, "chat.html")
+		c.Redirect(http.StatusFound, "chat.html") // Перенаправляем на чат, если пользователь аутентифицирован
 	})
 
 	router.GET("/login.html", func(c *gin.Context) {

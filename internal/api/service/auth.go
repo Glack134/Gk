@@ -16,7 +16,7 @@ import (
 
 const (
 	salt        = "6765fgvbhhgf35vfu9jft5tg"
-	signingKey  = "qjvkvnsjdnj2njn29njv**@9un19@!33"
+	signingKey  = "GSfas16va9vjq$nf1!nb&$visjdig"
 	resetingKey = "fa#dh$bsia1*&2rffvsv2135v#eg*#"
 	tokenTTL    = 12 * time.Hour
 )
@@ -220,6 +220,28 @@ func validateTwoFACode(secret, code string) bool {
 
 func (s *AuthService) IsTwoFAEnabled(userID int) (bool, error) {
 	return s.repo.IsTwoFAEnabled(userID)
+}
+
+//tOKEN
+
+func (s *Service) GenerateAccessToken(userId int) (string, error) {
+	// Access token содержит больше информации
+	claims := jwt.MapClaims{
+		"userId": userId,
+		"exp":    time.Now().Add(time.Hour).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte("access_secret"))
+}
+
+func (s *Service) GenerateRefreshToken(userId int) (string, error) {
+	// Refresh token содержит только userId
+	claims := jwt.MapClaims{
+		"userId": userId,
+		"exp":    time.Now().Add(7 * 24 * time.Hour).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte("refresh_secret"))
 }
 
 func (s *AuthService) GenerateAccessToken(userId int) (string, error) {

@@ -101,8 +101,8 @@ func (h *Handler) AuthMiddleware(c *gin.Context) {
 	c.Header("Pragma", "no-cache")
 	c.Header("Expires", "0")
 
-	// Получаем куку с токеном
-	token, err := c.Cookie("auth_token")
+	// Получаем access token из куки
+	accessToken, err := c.Cookie("auth_token")
 	if err != nil {
 		h.logger.Errorf("AuthMiddleware: failed to get auth_token cookie: %v", err)
 		c.Redirect(http.StatusFound, "/login.html")
@@ -110,17 +110,17 @@ func (h *Handler) AuthMiddleware(c *gin.Context) {
 		return
 	}
 
-	// Парсим токен
-	userId, err := h.services.Authorization.ParseToken(token)
+	// Парсим access token
+	userId, err := h.services.Authorization.ParseToken(accessToken)
 	if err != nil {
-		h.logger.Errorf("AuthMiddleware: failed to parse token: %v", err)
+		h.logger.Errorf("AuthMiddleware: failed to parse access token: %v", err)
 		c.Redirect(http.StatusFound, "/login.html")
 		c.Abort()
 		return
 	}
 
-	// Проверяем, не находится ли токен в черном списке (если такая функциональность есть)
-	isBlacklisted, err := h.services.Authorization.IsTokenBlacklisted(token)
+	// Проверяем, не находится ли access token в черном списке
+	isBlacklisted, err := h.services.Authorization.IsTokenBlacklisted(accessToken)
 	if err != nil {
 		h.logger.Errorf("AuthMiddleware: failed to check token blacklist: %v", err)
 		c.Redirect(http.StatusFound, "/login.html")

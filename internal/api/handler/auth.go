@@ -32,12 +32,12 @@ func (h *Handler) signUp(c *gin.Context) {
 type signInInput struct {
 	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
-	Code     string `json:"code,omitempty"`
 }
 
 func (h *Handler) signIn(c *gin.Context) {
 	var input signInInput
 
+	// Парсим входные данные
 	if err := c.BindJSON(&input); err != nil {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
@@ -67,19 +67,29 @@ func (h *Handler) signIn(c *gin.Context) {
 		return
 	}
 
-	// Если 2FA не включена, генерируем токен и возвращаем его
-	token, err := h.services.Authorization.GenerateToken(input.Email, input.Password)
+	// Если 2FA не включена, генерируем access token и refresh token
+	accessToken, err := h.services.Authorization.GenerateAccessToken(user.Id)
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		newErrorResponse(c, http.StatusInternalServerError, "Failed to generate access token")
 		return
 	}
 
-	c.SetCookie("auth_token", token, 3600, "/", "localhost", false, true)
+	refreshToken, err := h.services.Authorization.GenerateRefreshToken(user.Id)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, "Failed to generate refresh token")
+		return
+	}
 
+	// Устанавливаем токены в куки
+	c.SetCookie("auth_token", accessToken, 3600, "/", "localhost", false, true)          // Access token
+	c.SetCookie("refresh_token", refreshToken, 7*24*3600, "/", "localhost", false, true) // Refresh token
+
+	// Возвращаем токены и сообщение об успешной аутентификации
 	c.JSON(http.StatusOK, gin.H{
-		"token":        token,
-		"requires_2fa": false,
-		"message":      "Login successful",
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+		"requires_2fa":  false,
+		"message":       "Login successful",
 	})
 }
 
@@ -101,18 +111,28 @@ func (h *Handler) verifyTwoFALogin(c *gin.Context) {
 		return
 	}
 
-	// Генерируем токен и возвращаем его
-	token, err := h.services.Authorization.GenerateToken("", "") // Генерация токена без проверки пароля
+	// Генерируем access token и refresh token
+	accessToken, err := h.services.Authorization.GenerateAccessToken(input.UserID)
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		newErrorResponse(c, http.StatusInternalServerError, "Failed to generate access token")
 		return
 	}
 
-	c.SetCookie("auth_token", token, 3600, "/", "localhost", false, true)
+	refreshToken, err := h.services.Authorization.GenerateRefreshToken(input.UserID)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, "Failed to generate refresh token")
+		return
+	}
 
+	// Устанавливаем токены в куки
+	c.SetCookie("auth_token", accessToken, 3600, "/", "localhost", false, true)          // Access token
+	c.SetCookie("refresh_token", refreshToken, 7*24*3600, "/", "localhost", false, true) // Refresh token
+
+	// Возвращаем токены и сообщение об успешной аутентификации
 	c.JSON(http.StatusOK, gin.H{
-		"token":   token,
-		"message": "Login successful with 2FA",
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+		"message":       "Login successful with 2FA",
 	})
 }
 
