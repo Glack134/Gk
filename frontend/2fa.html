@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>2FA Verification</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -14,25 +14,25 @@
             height: 100vh;
             margin: 0;
         }
-        .login-container {
+        .twofa-container {
             background-color: #fff;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             width: 300px;
         }
-        .login-container h2 {
+        .twofa-container h2 {
             margin-bottom: 20px;
             text-align: center;
         }
-        .login-container input {
+        .twofa-container input {
             width: 100%;
             padding: 10px;
             margin-bottom: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
         }
-        .login-container button {
+        .twofa-container button {
             width: 100%;
             padding: 10px;
             background-color: #28a745;
@@ -41,7 +41,7 @@
             border-radius: 4px;
             cursor: pointer;
         }
-        .login-container button:hover {
+        .twofa-container button:hover {
             background-color: #218838;
         }
         .error-message {
@@ -52,45 +52,41 @@
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <h2>Login</h2>
-        <form id="loginForm">
-            <input type="email" id="email" placeholder="Email" required>
-            <input type="password" id="password" placeholder="Password" required>
-            <button type="submit">Sign In</button>
+    <div class="twofa-container">
+        <h2>2FA Verification</h2>
+        <form id="twofaForm">
+            <input type="text" id="code" placeholder="Enter 2FA Code" required>
+            <button type="submit">Verify</button>
         </form>
         <div id="errorMessage" class="error-message"></div>
     </div>
 
     <script>
-        document.getElementById('loginForm').addEventListener('submit', async function (e) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const email = urlParams.get('email');
+
+        document.getElementById('twofaForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+            const code = document.getElementById('code').value;
 
-            const response = await fetch('http://localhost:8080/auth/sign-in', {
+            const response = await fetch('/auth/verify2fa', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ email, code }),
             });
 
             const result = await response.json();
 
             if (response.ok) {
-                if (result.requires_2fa) {
-                    // Перенаправляем на страницу 2FA
-                    window.location.href = `/`;
-                } else {
-                    // Сохраняем токен и перенаправляем на главную страницу
-                    localStorage.setItem('token', result.token);
-                    window.location.href = '/';
-                }
+                // Сохраняем токен и перенаправляем на главную страницу
+                localStorage.setItem('token', result.token);
+                window.location.href = '/';
             } else {
                 // Показываем ошибку
-                document.getElementById('errorMessage').textContent = result.message || 'Login failed';
+                document.getElementById('errorMessage').textContent = result.message || '2FA verification failed';
             }
         });
     </script>

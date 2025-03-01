@@ -2,7 +2,9 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/polyk005/message/internal/api/service"
@@ -26,6 +28,16 @@ func NewHandler(services *service.Service, db *sqlx.DB) *Handler {
 
 func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.Default()
+
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:  []string{"http://localhost:8080"},
+		AllowMethods:  []string{"GET", "POST", "PUT", "DELETE"},
+		AllowHeaders:  []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders: []string{"Content-Length"},
+
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	router.Use(h.rateLimitMiddleware)
 
@@ -64,6 +76,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	{
 		auth.POST("/sign-up", h.signUp)
 		auth.POST("/sign-in", h.signIn)
+		auth.POST("/verify2fa", h.verifyTwoFALogin)
 		auth.POST("/reset_password", h.requestPasswordReset)
 	}
 
