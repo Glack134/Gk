@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -40,19 +41,33 @@ func (s *AuthService) CreateUser(user model.User) (int, error) {
 }
 
 func (s *AuthService) GenerateToken(username, password string) (string, error) {
-	// Указываем, что нужно проверять пароль
+	// Получаем пользователя по email и паролю
 	user, err := s.repo.GetUser(username, s.generatePasswordHash(password), true)
 	if err != nil {
 		return "", err
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
-		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(tokenTTL).Unix(),
-			IssuedAt:  time.Now().Unix(),
+	// Проверяем, что user.Id не равен 0
+	if user.Id == 0 {
+		return "", errors.New("user ID is 0")
+	}
+
+	// Логируем user ID для отладки
+	log.Printf("Generating token for user ID: %d", user.Id)
+
+	// Создаем claims с user.Id
+	claims := &tokenClaims{
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(tokenTTL).Unix(), // Время истечения токена
+			IssuedAt:  time.Now().Unix(),               // Время создания токена
 		},
-		user.Id,
-	})
+		UserId: user.Id, // Устанавливаем user.Id
+	}
+
+	// Создаем токен с claims
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Подписываем токен
 	return token.SignedString([]byte(signingKey))
 }
 
@@ -66,10 +81,17 @@ func (s *AuthService) ParseToken(accessToken string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	claims, ok := token.Claims.(*tokenClaims)
 	if !ok {
 		return 0, errors.New("token claims are not of type *tokenClaims")
 	}
+
+	// Проверяем, что user_id не равен 0
+	if claims.UserId == 0 {
+		return 0, errors.New("user id is 0 in token claims")
+	}
+
 	return claims.UserId, nil
 }
 
@@ -224,32 +246,54 @@ func (s *AuthService) IsTwoFAEnabled(userID int) (bool, error) {
 
 //tOKEN
 
-func (s *Service) GenerateAccessToken(userId int) (string, error) {
-	// Access token содержит больше информации
-	claims := jwt.MapClaims{
-		"userId": userId,
-		"exp":    time.Now().Add(time.Hour).Unix(),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte("access_secret"))
-}
-
-func (s *Service) GenerateRefreshToken(userId int) (string, error) {
-	// Refresh token содержит только userId
-	claims := jwt.MapClaims{
-		"userId": userId,
-		"exp":    time.Now().Add(7 * 24 * time.Hour).Unix(),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte("refresh_secret"))
-}
-
 func (s *AuthService) GenerateAccessToken(userId int) (string, error) {
-	return s.repo.GenerateToken(userId, time.Hour)
+	// Проверяем, что userId не равен 0
+	if userId == 0 {
+		return "", errors.New("user ID is 0")
+	}
+
+	// Логируем user ID для отладки
+	log.Printf("Generating access token for user ID: %d", userId)
+
+	// Создаем claims с user.Id
+	claims := &tokenClaims{
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Hour).Unix(), // Время истечения токена (1 час)
+			IssuedAt:  time.Now().Unix(),                // Время создания токена
+		},
+		UserId: userId, // Устанавливаем user.Id
+	}
+
+	// Создаем токен с claims
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Подписываем токен
+	return token.SignedString([]byte(signingKey))
 }
 
 func (s *AuthService) GenerateRefreshToken(userId int) (string, error) {
-	return s.repo.GenerateToken(userId, 7*24*time.Hour)
+	// Проверяем, что userId не равен 0
+	if userId == 0 {
+		return "", errors.New("user ID is 0")
+	}
+
+	// Логируем user ID для отладки
+	log.Printf("Generating refresh token for user ID: %d", userId)
+
+	// Создаем claims с user.Id
+	claims := &tokenClaims{
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(7 * 24 * time.Hour).Unix(), // Время истечения токена (7 дней)
+			IssuedAt:  time.Now().Unix(),                         // Время создания токена
+		},
+		UserId: userId, // Устанавливаем user.Id
+	}
+
+	// Создаем токен с claims
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Подписываем токен
+	return token.SignedString([]byte(signingKey))
 }
 
 func (s *AuthService) ValidateRefreshToken(refreshToken string) (int, error) {

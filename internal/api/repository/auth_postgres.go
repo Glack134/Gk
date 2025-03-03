@@ -170,8 +170,12 @@ func (r *AuthPostgres) IsTwoFAEnabled(userID int) (bool, error) {
 	var isEnabled bool
 	query := "SELECT is_two_fa_enabled FROM users WHERE id = $1"
 	err := r.db.QueryRow(query, userID).Scan(&isEnabled)
+
 	if err != nil {
-		return false, err
+		if err == sql.ErrNoRows {
+			return false, fmt.Errorf("user with ID %d not found", userID)
+		}
+		return false, fmt.Errorf("failed to query database: %w", err)
 	}
 	return isEnabled, nil
 }

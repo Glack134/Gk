@@ -85,22 +85,25 @@ func (h *Handler) userIdentity(c *gin.Context) {
 func getUserId(c *gin.Context) (int, error) {
 	id, ok := c.Get(userCtx)
 	if !ok {
-		newErrorResponse(c, http.StatusInternalServerError, "user id not found")
-		return 0, errors.New("user id not found")
+		newErrorResponse(c, http.StatusInternalServerError, "user id not found in context")
+		return 0, errors.New("user id not found in context")
 	}
+
 	idInt, ok := id.(int)
 	if !ok {
 		newErrorResponse(c, http.StatusInternalServerError, "user id is of invalid type")
-		return 0, errors.New("user id not found")
+		return 0, errors.New("user id is of invalid type")
 	}
+
+	if idInt == 0 {
+		newErrorResponse(c, http.StatusInternalServerError, "user id is 0")
+		return 0, errors.New("user id is 0")
+	}
+
 	return idInt, nil
 }
 
 func (h *Handler) AuthMiddleware(c *gin.Context) {
-	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
-	c.Header("Pragma", "no-cache")
-	c.Header("Expires", "0")
-
 	// Получаем access token из куки
 	accessToken, err := c.Cookie("auth_token")
 	if err != nil {
@@ -109,6 +112,9 @@ func (h *Handler) AuthMiddleware(c *gin.Context) {
 		c.Abort()
 		return
 	}
+
+	// Логируем токен для отладки
+	h.logger.Infof("AuthMiddleware: access token: %s", accessToken)
 
 	// Парсим access token
 	userId, err := h.services.Authorization.ParseToken(accessToken)
@@ -119,20 +125,8 @@ func (h *Handler) AuthMiddleware(c *gin.Context) {
 		return
 	}
 
-	// Проверяем, не находится ли access token в черном списке
-	isBlacklisted, err := h.services.Authorization.IsTokenBlacklisted(accessToken)
-	if err != nil {
-		h.logger.Errorf("AuthMiddleware: failed to check token blacklist: %v", err)
-		c.Redirect(http.StatusFound, "/login.html")
-		c.Abort()
-		return
-	}
-	if isBlacklisted {
-		h.logger.Infof("AuthMiddleware: token is blacklisted for user %d", userId)
-		c.Redirect(http.StatusFound, "/login.html")
-		c.Abort()
-		return
-	}
+	// Логируем user ID для отладки
+	h.logger.Infof("AuthMiddleware: user ID from token: %d", userId)
 
 	// Устанавливаем ID пользователя в контекст
 	c.Set(userCtx, userId)

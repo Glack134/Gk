@@ -40,7 +40,7 @@ type User interface {
 type Chat interface {
 	CreateChat(chatName string, userIDs ...int) (int, error)
 	AddParticipant(chatID, userID int) error
-	GetChatsForUser(userID int) ([]map[string]interface{}, error)
+	GetChatsForUser(userID int) ([]map[string]interface{}, error) //пустышка
 	UserExists(username string) (bool, error)
 	ChatExistsBetweenUsers(userID1, userID2 int) (int, error)
 	GetUserIDByUsername(username string) (int, error)

@@ -1,27 +1,52 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/styles.css">
+    <title>Вход</title>
 </head>
 <body>
     <div class="container">
-        <h2>Login</h2>
+        <h1>Вход в мессенджер</h1>
         <form id="loginForm">
-            <input type="email" id="email" placeholder="Email" required>
+            <input type="text" id="email" placeholder="Email" required>
             <input type="password" id="password" placeholder="Password" required>
-            <button type="submit">Sign In</button>
+            <button type="submit">Войти</button>
         </form>
-        <div id="twoFAForm" style="display: none;">
-            <input type="text" id="twoFACode" placeholder="Enter 2FA Code" required>
-            <button id="submit2FA">Submit 2FA Code</button>
-        </div>
-        <p>Don't have an account? <a href="/signup.html">Sign Up</a></p>
-        <div id="errorMessage" class="error-message"></div>
+        <p>Нет аккаунта? <a href="/signup.html">Зарегистрироваться</a></p>
     </div>
+    <script>
+        document.getElementById('loginForm').onsubmit = async function(event) {
+            event.preventDefault();
 
-    <script src="/static/js/login.js"></script>
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/auth/sign-in', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                const data = await response.json(); // Парсим ответ сервера
+
+                if (response.ok) {
+                    // Если вход успешен, перенаправляем на страницу чата
+                    window.location.href = '/chat.html';
+                } else {
+                    // Если сервер вернул ошибку, выводим её сообщение
+                    alert(`Ошибка входа: ${data.message || 'Неизвестная ошибка'}`);
+                }
+            } catch (error) {
+                // Обработка ошибок сети или других исключений
+                console.error('Ошибка при отправке запроса:', error);
+                alert('Произошла ошибка при попытке входа. Пожалуйста, попробуйте снова.');
+            }
+        };
+    </script>
 </body>
 </html>

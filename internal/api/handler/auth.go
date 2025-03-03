@@ -319,24 +319,32 @@ func (h *Handler) UpdatePasswordHandler(c *gin.Context) {
 func (h *Handler) EnableTwoFA(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {
+		log.Printf("Failed to get user ID from token: %v", err)
 		newErrorResponse(c, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
+	log.Printf("User ID retrieved from token: %d", userId)
+
 	isTwoFAEnabled, err := h.services.Authorization.IsTwoFAEnabled(userId)
 	if err != nil {
+		log.Printf("Error checking 2FA status for user ID %d: %v", userId, err)
 		newErrorResponse(c, http.StatusInternalServerError, "failed to check 2FA status")
 		return
 	}
+
+	log.Printf("2FA status for user ID %d: %v", userId, isTwoFAEnabled)
 
 	if isTwoFAEnabled {
 		newErrorResponse(c, http.StatusBadRequest, "2FA is already enabled for this user")
 		return
 	}
 
+	// Логика для включения 2FA...
 	url, err := h.services.Authorization.EnableTwoFA(userId)
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		log.Printf("Error enabling 2FA for user ID %d: %v", userId, err)
+		newErrorResponse(c, http.StatusInternalServerError, "failed to enable 2FA")
 		return
 	}
 
@@ -363,7 +371,6 @@ func (h *Handler) EnableTwoFA(c *gin.Context) {
 		return
 	}
 
-	// Формируем ответ с URL для ручного ввода кода
 	response := map[string]interface{}{
 		"manual_code": "",  // Здесь вы можете указать код, если он доступен
 		"qr_code_url": url, // URL для QR-кода
@@ -371,6 +378,11 @@ func (h *Handler) EnableTwoFA(c *gin.Context) {
 
 	// Отправляем JSON-ответ с кодом и URL для QR-кода
 	c.JSON(http.StatusOK, response)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "2FA enabled successfully",
+		"url":     url,
+	})
 }
 
 func (h *Handler) VerifyTwoFA(c *gin.Context) {
