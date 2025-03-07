@@ -1,6 +1,10 @@
 package repository
 
-import "github.com/jmoiron/sqlx"
+import (
+	"fmt"
+
+	"github.com/jmoiron/sqlx"
+)
 
 type MessageRepository struct {
 	db *sqlx.DB
@@ -17,13 +21,22 @@ func (r *MessageRepository) GetMessages(chatID string) ([]Message, error) {
 	return messages, err
 }
 
-func (r *MessageRepository) SendMessage(chatID, userID int, content string) (int, error) {
-	var messageID int
-	query := `INSERT INTO messages (chat_id, user_id, content) 	VALUES ($1, $2, $3) RETURNING id`
-	err := r.db.QueryRow(query, chatID, userID, content).Scan(&messageID)
+func (r *MessageRepository) SendMessage(chatID, chatParticipantID int, content string) (int, error) {
+	// Проверяем, существует ли chat_participant_id в таблице chat_participants
+	var participantID int
+	err := r.db.QueryRow("SELECT id FROM chat_participants WHERE id = $1", chatParticipantID).Scan(&participantID)
 	if err != nil {
-		return 0, nil
+		return 0, fmt.Errorf("chat participant with id %d does not exist: %v", chatParticipantID, err)
 	}
+
+	// Если участник существует, вставляем сообщение
+	var messageID int
+	query := `INSERT INTO messages (chat_id, chat_participant_id, content) VALUES ($1, $2, $3) RETURNING id`
+	err = r.db.QueryRow(query, chatID, chatParticipantID, content).Scan(&messageID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to send message: %v", err)
+	}
+
 	return messageID, nil
 }
 

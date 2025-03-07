@@ -14,8 +14,8 @@ func (s *MessageService) GetMessages(chatID string) ([]repository.Message, error
 	return s.repo.GetMessages(chatID)
 }
 
-func (s *MessageService) SendMessage(chatID, userID int, content string) (int, error) {
-	return s.repo.SendMessage(chatID, userID, content)
+func (s *MessageService) SendMessage(chatID, chatParticipantID int, content string) (int, error) {
+	return s.repo.SendMessage(chatID, chatParticipantID, content)
 }
 
 func (s *MessageService) EditMessage(messageID int, content string) error {

@@ -20,18 +20,18 @@ func (h *Handler) getMessages(c *gin.Context) {
 
 func (h *Handler) sendMessage(c *gin.Context) {
 	var input struct {
-		ChatID  int    `json:"chat_id"`
-		UserID  int    `json:"user_id"`
-		Content string `json:"content"`
+		ChatID            int    `json:"chat_id"`
+		ChatParticipantID int    `json:"chat_participant_id"`
+		Content           string `json:"content"`
 	}
 	if err := c.BindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	messageID, err := h.services.Message.SendMessage(input.ChatID, input.UserID, input.Content)
+	messageID, err := h.services.Message.SendMessage(input.ChatID, input.ChatParticipantID, input.Content)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()}) // Возвращаем 400 с описанием ошибки
 		return
 	}
 
