@@ -104,31 +104,28 @@ func getUserId(c *gin.Context) (int, error) {
 }
 
 func (h *Handler) AuthMiddleware(c *gin.Context) {
-	// Получаем access token из куки
-	accessToken, err := c.Cookie("auth_token")
-	if err != nil {
-		h.logger.Errorf("AuthMiddleware: failed to get auth_token cookie: %v", err)
-		c.Redirect(http.StatusFound, "/login.html")
-		c.Abort()
+	// Получаем токен из заголовка Authorization
+	header := c.GetHeader("Authorization")
+	if header == "" {
+		newErrorResponse(c, http.StatusUnauthorized, "empty auth header")
 		return
 	}
 
-	// Логируем токен для отладки
-	h.logger.Infof("AuthMiddleware: access token: %s", accessToken)
-
-	// Парсим access token
-	userId, err := h.services.Authorization.ParseToken(accessToken)
-	if err != nil {
-		h.logger.Errorf("AuthMiddleware: failed to parse access token: %v", err)
-		c.Redirect(http.StatusFound, "/login.html")
-		c.Abort()
+	// Проверяем формат заголовка (Bearer <token>)
+	headerParts := strings.Split(header, " ")
+	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+		newErrorResponse(c, http.StatusUnauthorized, "invalid auth header")
 		return
 	}
 
-	// Логируем user ID для отладки
-	h.logger.Infof("AuthMiddleware: user ID from token: %d", userId)
+	// Парсим токен
+	userId, err := h.services.Authorization.ParseToken(headerParts[1])
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		return
+	}
 
-	// Устанавливаем ID пользователя в контекст
-	c.Set(userCtx, userId)
+	// Устанавливаем user_id в контекст
+	c.Set("user_id", userId)
 	c.Next()
 }

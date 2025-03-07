@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login with QR Code</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        #qrcode {
+            margin: 20px 0;
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: 80%;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Login with QR Code</h1>
+        
+        <!-- Кнопка для генерации QR-кода -->
+        <button onclick="generateQRCode()">Generate QR Code</button>
+        
+        <!-- Место для отображения QR-кода -->
+        <div id="qrcode"></div>
+
+        <!-- Форма для входа по QR-коду -->
+        <h2>Or enter token manually</h2>
+        <input type="text" id="tokenInput" placeholder="Enter your token">
+        <button onclick="loginWithQRCode()">Login</button>
+    </div>
+
+    <!-- Подключаем библиотеку QRCode.js -->
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+    <script>
+        // Функция для генерации QR-кода
+        async function generateQRCode() {
+            try {
+                // Запрашиваем токен с бэкенда
+                const response = await fetch('/auth/qr-code');
+                if (!response.ok) {
+                    throw new Error('Failed to generate QR code');
+                }
+
+                // Получаем токен из ответа
+                const token = await response.text();
+
+                // Очищаем предыдущий QR-код
+                document.getElementById('qrcode').innerHTML = '';
+
+                // Генерируем новый QR-код
+                new QRCode(document.getElementById('qrcode'), {
+                    text: token,
+                    width: 200,
+                    height: 200,
+                });
+
+                // Сохраняем токен в поле ввода
+                document.getElementById('tokenInput').value = token;
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to generate QR code');
+            }
+        }
+
+        // Функция для входа по QR-коду
+        async function loginWithQRCode() {
+            const token = document.getElementById('tokenInput').value.trim();
+            if (!token) {
+                alert('Please enter a token');
+                return;
+            }
+
+            try {
+                // Отправляем токен на бэкенд
+                const response = await fetch('/auth/login-qr', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ token }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Login failed');
+                }
+
+                const result = await response.json();
+                alert('Login successful!');
+                console.log('Login result:', result);
+
+                // Перенаправляем пользователя на защищенную страницу
+                window.location.href = '/chat.html';
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Login failed');
+            }
+        }
+    </script>
+</body>
+</html>

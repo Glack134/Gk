@@ -51,6 +51,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		auth.POST("/sign-in", h.signIn)
 		auth.POST("/verify-2fa", h.verifyTwoFALogin)
 		auth.POST("/reset_password", h.requestPasswordReset)
+		auth.GET("/qr-code", h.GenerateQRCode)    // Новый маршрут для генерации QR-кода
+		auth.POST("/login-qr", h.LoginWithQRCode) // Новый маршрут для входа по QR-коду
 	}
 
 	profile := router.Group("/profile")
@@ -143,6 +145,10 @@ func (h *Handler) InitRoutes() *gin.Engine {
 
 	router.GET("/profile.html", h.AuthMiddleware, func(c *gin.Context) {
 		c.HTML(http.StatusOK, "profile.html", nil)
+	})
+
+	router.GET("/qr-login.html", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "qr-login.html", nil)
 	})
 
 	router.POST("/auth/logout", func(c *gin.Context) {

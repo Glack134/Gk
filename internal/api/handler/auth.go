@@ -11,6 +11,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 
@@ -430,4 +431,98 @@ func (h *Handler) DisableTwoFA(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Two-Factor Authentication disabled"})
+}
+
+// login-qr_code
+func (h *Handler) GenerateQRCode(c *gin.Context) {
+	// Получаем user ID из контекста (если требуется)
+	userId, err := getUserId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	// Генерируем токен для QR-кода
+	token, err := h.services.Authorization.GenerateAccessToken(userId)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, "failed to generate token")
+		return
+	}
+
+	// Кодируем токен в base64url
+	encodedToken := base64.URLEncoding.EncodeToString([]byte(token))
+
+	// Создаем URL для QR-кода
+	qrURL := fmt.Sprintf("tg://login?token=%s", url.QueryEscape(encodedToken))
+
+	// Генерируем QR-код
+	qrCode, err := qr.Encode(qrURL, qr.L, qr.Auto)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, "failed to generate QR code")
+		return
+	}
+
+	// Масштабируем QR-код
+	qrCode, err = barcode.Scale(qrCode, 200, 200)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, "failed to scale QR code")
+		return
+	}
+
+	// Отправляем QR-код в ответе
+	c.Header("Content-Type", "image/png")
+	if err := png.Encode(c.Writer, qrCode); err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, "failed to send QR code")
+		return
+	}
+}
+
+func (h *Handler) LoginWithQRCode(c *gin.Context) {
+	var input struct {
+		Token string `json:"token" binding:"required"`
+	}
+
+	if err := c.BindJSON(&input); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid input")
+		return
+	}
+
+	// Декодируем токен из base64url
+	decodedToken, err := base64.URLEncoding.DecodeString(input.Token)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid token format")
+		return
+	}
+
+	// Парсим токен
+	userId, err := h.services.Authorization.ParseToken(string(decodedToken))
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, "invalid token")
+		return
+	}
+
+	// Генерируем access и refresh токены
+	accessToken, err := h.services.Authorization.GenerateAccessToken(userId)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, "failed to generate access token")
+		return
+	}
+
+	refreshToken, err := h.services.Authorization.GenerateRefreshToken(userId)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, "failed to generate refresh token")
+		return
+	}
+
+	// Устанавливаем токены в куки
+	domain := os.Getenv("COOKIE_DOMAIN")
+	c.SetCookie("auth_token", accessToken, 3600, "/", domain, false, true)
+	c.SetCookie("refresh_token", refreshToken, 7*24*3600, "/", domain, false, true)
+
+	// Возвращаем успешный ответ
+	c.JSON(http.StatusOK, gin.H{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+		"message":       "Login successful with QR code",
+	})
 }
