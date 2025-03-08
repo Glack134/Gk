@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"time"
 
@@ -10,6 +12,8 @@ import (
 	"github.com/polyk005/message/internal/api/service"
 	"github.com/polyk005/message/pkg/websocket"
 	"github.com/sirupsen/logrus"
+	"github.com/stripe/stripe-go"
+	"github.com/stripe/stripe-go/paymentintent"
 )
 
 type Handler struct {
@@ -86,6 +90,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	{
 		payment.POST("/create", h.createPayment)
 		payment.GET("/:id/status", h.getPaymentStatus)
+		payment.GET("/callback", h.handlePaymentCallback)
+		payment.GET("/:id/qr", h.generateQR)
 	}
 
 	subscription := router.Group("/subscription")
@@ -106,8 +112,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	// Статические файлы
 	router.Static("/static", "./frontend/static")
 
-	// Маршруты для HTML страниц
-	router.LoadHTMLGlob("frontend/*.html")
+	router.LoadHTMLGlob("/home/midiy/file_programming/message/frontend/*.html")
 
 	router.GET("/login2fa.html", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "login2fa.html", nil)
@@ -134,6 +139,29 @@ func (h *Handler) InitRoutes() *gin.Engine {
 
 	router.GET("/signup.html", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "signup.html", nil)
+	})
+
+	router.GET("/stripe", func(c *gin.Context) {
+		// Создаем PaymentIntent
+		params := &stripe.PaymentIntentParams{
+			Amount:   stripe.Int64(100), // Сумма в центах (например, 1.00 USD)
+			Currency: stripe.String("usd"),
+		}
+		pi, err := paymentintent.New(params)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать PaymentIntent"})
+			return
+		}
+
+		// Шифруем client_secret с использованием SHA-256
+		hash := sha256.Sum256([]byte(pi.ClientSecret))
+		encryptedSecret := hex.EncodeToString(hash[:])
+
+		// Передаем зашифрованный client_secret в шаблон
+		c.HTML(http.StatusOK, "stripe.html", gin.H{
+			"client_secret":    pi.ClientSecret, // Оригинальный client_secret
+			"encrypted_secret": encryptedSecret, // Зашифрованный client_secret
+		})
 	})
 
 	// Защищенные маршруты

@@ -9,6 +9,7 @@ import (
 	"github.com/polyk005/message/internal/api/service"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"github.com/stripe/stripe-go"
 )
 
 func main() {
@@ -21,6 +22,8 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		logrus.Fatalf("error loading env variables: %s", err.Error())
 	}
+
+	stripe.Key = viper.GetString("stripe.secret_key")
 
 	db, err := repository.NewPostgresDB(repository.Config{
 		Host:     viper.GetString("db.host"),

@@ -8,6 +8,9 @@ db:
     sslmode: "disable"
     password: "qwe230405180405"
 
+stripe:
+  secret_key: "sk_test_51R0Ky1FYHzocUDkulrNQvvmyjWGy7aWVEfweA71Gvl7FQYeBnbYv4YQ94G6Dp8PpG4GdItSeqGlxF7DdQfgHMlBC00eLwCbnA5"
+
 twilio:
     account_sid: "-"
     auth_token: "-"

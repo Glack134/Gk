@@ -66,6 +66,8 @@ type Notification interface {
 type Payment interface {
 	CreatePayment(userID int, amount float64, purpose string) (int, error)
 	GetPaymentStatus(paymentID string) (string, error)
+	GetPaymentDetails(paymentID int) (*PaymentDetails, error)
+	UpdatePaymentStatus(paymentID int, status string) error
 }
 
 type Subscription interface {
@@ -93,7 +95,7 @@ func NewRepository(db *sqlx.DB) *Repository {
 		Chat:          NewChatRepository(db.DB),
 		Message:       NewMessageRepository(db),
 		Notification:  NewNotificationRepository(db.DB),
-		Payment:       NewPaymentRepository(db.DB),
-		Subscription:  NewSubscriptionRepository(db.DB),
+		Payment:       NewPaymentRepository(db),
+		Subscription:  NewSubscriptionRepository(db),
 	}
 }

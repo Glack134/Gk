@@ -1,38 +1,64 @@
 package repository
 
 import (
-	"database/sql"
+	"context"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type PaymentRepository struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
-func NewPaymentRepository(db *sql.DB) *PaymentRepository {
+func NewPaymentRepository(db *sqlx.DB) *PaymentRepository {
 	return &PaymentRepository{db: db}
 }
 
-func (r *PaymentRepository) CreatePayment(userID int, amount float64, purpose string) (int, error) {
+type PaymentDetails struct {
+	Amount   float64 `db:"amount"`
+	Currency string  `db:"currency"`
+}
+
+func (r *PaymentRepository) GetPaymentDetails(paymentID int) (*PaymentDetails, error) {
+	var details PaymentDetails
+	query := `SELECT amount, currency FROM payments WHERE id = $1`
+	err := r.db.QueryRow(query, paymentID).Scan(&details.Amount, &details.Currency)
+	if err != nil {
+		return nil, err
+	}
+	return &details, nil
+}
+
+func (r *PaymentRepository) CreatePayment(userID int, amount float64, purpose, paymentMethod string) (int, error) {
 	var paymentID int
-	query := `INSERT INTO payments (user_id, amount, purpose, status) 
-	          VALUES ($1, $2, $3, $4) RETURNING id`
-	err := r.db.QueryRow(query, userID, amount, purpose, "pending").Scan(&paymentID)
+	query := `INSERT INTO payments (user_id, amount, purpose, payment_method, status) 
+	          VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	err := r.db.QueryRow(query, userID, amount, purpose, paymentMethod, "pending").Scan(&paymentID)
 	return paymentID, err
 }
 
-func (r *PaymentRepository) GetPaymentStatus(paymentID string) (string, error) {
+func (r *PaymentRepository) GetPaymentStatus(ctx context.Context, paymentID string) (string, error) {
 	var status string
 	query := `SELECT status FROM payments WHERE id = $1`
-	err := r.db.QueryRow(query, paymentID).Scan(&status)
-	return status, err
+	err := r.db.QueryRowContext(ctx, query, paymentID).Scan(&status)
+	if err != nil {
+		return "", err
+	}
+	return status, nil
+}
+
+func (r *PaymentRepository) UpdatePaymentStatus(paymentID int, status string) error {
+	query := `UPDATE payments SET status = $1 WHERE id = $2`
+	_, err := r.db.Exec(query, status, paymentID)
+	return err
 }
 
 type SubscriptionRepository struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
-func NewSubscriptionRepository(db *sql.DB) *SubscriptionRepository {
+func NewSubscriptionRepository(db *sqlx.DB) *SubscriptionRepository {
 	return &SubscriptionRepository{db: db}
 }
 

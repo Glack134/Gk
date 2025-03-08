@@ -26,3 +26,11 @@ type TokenRecord struct {
 	Token  string    `json:"token" db:"token"`
 	Expiry time.Time `json:"expiry" db:"expiry"`
 }
+
+type Subscription struct {
+	ID        int       `json:"id"`
+	Plan      string    `json:"plan"`
+	Status    string    `json:"status"`
+	StartDate time.Time `json:"start_date"`
+	EndDate   time.Time `json:"end_date"`
+}

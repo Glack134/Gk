@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/polyk005/message/internal/api/repository"
 	"github.com/polyk005/message/internal/model"
 )
@@ -62,8 +64,10 @@ type Notification interface {
 }
 
 type Payment interface {
-	CreatePayment(userID int, amount float64, purpose string) (int, error)
-	GetPaymentStatus(paymentID string) (string, error)
+	CreatePayment(userID int, amount float64, purpose, paymentMethod, currency string) (int, error)
+	GetPaymentStatus(ctx context.Context, paymentID string) (string, error)
+	GetPaymentDetails(paymentID int) (*repository.PaymentDetails, error)
+	UpdatePaymentStatus(paymentID int, status string) error
 }
 
 type Subscription interface {

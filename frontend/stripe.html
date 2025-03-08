@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оплата через Stripe</title>
+    <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+    <h1>Оплата через Stripe</h1>
+    <form id="payment-form">
+        <div id="card-element">
+            <!-- Элемент для ввода данных карты -->
+        </div>
+        <button id="submit">Оплатить</button>
+        <div id="card-errors" role="alert"></div>
+    </form>
+
+    <script>
+        const stripe = Stripe('pk_test_51R0Ky1FYHzocUDkutZ44QBJENjNonUkKCjdw0z3LUCGKzQgCpJaVlHBQAA3l02CAqaoeNWevGzk8414L2QzGCSw60078TkDUQ8'); // Замените на ваш публичный ключ
+
+        const elements = stripe.elements();
+        const cardElement = elements.create('card');
+        cardElement.mount('#card-element');
+
+        const form = document.getElementById('payment-form');
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const { paymentIntent, error } = await stripe.confirmCardPayment(
+                '{{ .client_secret }}', // Используем оригинальный client_secret
+                {
+                    payment_method: {
+                        card: cardElement,
+                    },
+                }
+            );
+
+            if (error) {
+                console.error("Ошибка оплаты:", error);
+                alert('Ошибка оплаты: ' + error.message);
+            } else {
+                console.log('Оплата успешна:', paymentIntent);
+                alert('Оплата прошла успешно!');
+            }
+        });
+    </script>
+</body>
+</html>
