@@ -18,8 +18,8 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 
 func (r *UserRepository) GetUserID(userID int) (*model.User, error) {
 	var user model.User
-	query := `SELECT id, country, username, email FROM users WHERE id = $1`
-	err := r.db.QueryRow(query, userID).Scan(&user.Id, &user.Сountry, &user.Username, &user.Email)
+	query := `SELECT id, country, username FROM users WHERE id = $1`
+	err := r.db.QueryRow(query, userID).Scan(&user.Id, &user.Сountry, &user.Username)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -50,7 +50,6 @@ func (r *UserRepository) UpdateUserPasswordByEmail(email, hashedPassword string)
 func (r *UserRepository) ValidateResetCode(code string) (string, error) {
 	var email string
 
-	// Проверка кода восстановления в базе данных
 	query := `SELECT email FROM password_resets WHERE code = $1 AND expires_at > NOW()`
 	err := r.db.QueryRow(query, code).Scan(&email)
 	if err != nil {

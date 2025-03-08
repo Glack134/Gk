@@ -10,7 +10,7 @@ func NewMessageService(repo *repository.MessageRepository) *MessageService {
 	return &MessageService{repo: repo}
 }
 
-func (s *MessageService) GetMessages(chatID string) ([]repository.Message, error) {
+func (s *MessageService) GetMessages(chatID int) ([]repository.Message, error) {
 	return s.repo.GetMessages(chatID)
 }
 
@@ -22,6 +22,6 @@ func (s *MessageService) EditMessage(messageID int, content string) error {
 	return s.repo.EditMessage(messageID, content)
 }
 
-func (s *MessageService) DeleteMessage(messageID string) error {
+func (s *MessageService) DeleteMessage(messageID int) error {
 	return s.repo.DeleteMessage(messageID)
 }

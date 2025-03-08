@@ -10,9 +10,9 @@ func NewMessageRepository(db *sqlx.DB) *MessageRepository {
 	return &MessageRepository{db: db}
 }
 
-func (r *MessageRepository) GetMessages(chatID string) ([]Message, error) {
+func (r *MessageRepository) GetMessages(chatID int) ([]Message, error) {
 	var messages []Message
-	query := "SELECT * FROM messages WHERE chat_id = $1 ORDER BY created_at ASC"
+	query := "SELECT id, chat_id, chat_participant_id, content, created_at, updated_at FROM messages WHERE chat_id = $1 ORDER BY created_at ASC"
 	err := r.db.Select(&messages, query, chatID)
 	return messages, err
 }
@@ -33,7 +33,7 @@ func (r *MessageRepository) EditMessage(messageID int, content string) error {
 	return err
 }
 
-func (r *MessageRepository) DeleteMessage(messageID string) error {
+func (r *MessageRepository) DeleteMessage(messageID int) error {
 	query := `DELETE FROM messages WHERE id = $1`
 	_, err := r.db.Exec(query, messageID)
 	return err

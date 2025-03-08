@@ -50,10 +50,10 @@ type Chat interface {
 }
 
 type Message interface {
-	GetMessages(chatID string) ([]repository.Message, error)
+	GetMessages(chatID int) ([]repository.Message, error)
 	SendMessage(chatID, userID int, content string) (int, error)
 	EditMessage(messageID int, content string) error
-	DeleteMessage(messageID string) error
+	DeleteMessage(messageID int) error
 }
 
 type Notification interface {

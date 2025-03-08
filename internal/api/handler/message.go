@@ -2,15 +2,30 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 func (h *Handler) getMessages(c *gin.Context) {
-	chatID := c.Param("chat_id")
+	chatIDStr := c.Param("chat_id")
+	h.logger.Infof("Received chat_id: %s", chatIDStr) // Логируем значение chat_id
+
+	if chatIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "chat_id is required"})
+		return
+	}
+
+	chatID, err := strconv.Atoi(chatIDStr)
+	if err != nil {
+		h.logger.Errorf("Invalid chat_id: %s", chatIDStr) // Логируем ошибку
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid chat_id: must be an integer"})
+		return
+	}
 
 	messages, err := h.services.Message.GetMessages(chatID)
 	if err != nil {
+		h.logger.Errorf("Failed to get messages: %v", err) // Логируем ошибку
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -58,9 +73,14 @@ func (h *Handler) editMessage(c *gin.Context) {
 }
 
 func (h *Handler) deleteMessage(c *gin.Context) {
-	messageID := c.Param("id")
+	messageIDStr := c.Param("id")
+	messageID, err := strconv.Atoi(messageIDStr) // Преобразуем строку в число
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid message_id"})
+		return
+	}
 
-	err := h.services.Message.DeleteMessage(messageID)
+	err = h.services.Message.DeleteMessage(messageID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
