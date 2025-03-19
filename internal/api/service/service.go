@@ -67,11 +67,12 @@ type Payment interface {
 	CreatePayment(userID int, amount float64, purpose, paymentMethod, currency string) (int, error)
 	GetPaymentStatus(ctx context.Context, paymentID string) (string, error)
 	GetPaymentDetails(paymentID int) (*repository.PaymentDetails, error)
+	GetPaymentID(userID int, amount float64, purpose string) (int, error)
 	UpdatePaymentStatus(paymentID int, status string) error
 }
 
 type Subscription interface {
-	CreateSubscription(userID int, plan string) (int, error)
+	CreateSubscription(userID int, plan string, paymentID int) (int, error)
 	GetSubscription(userID int) (map[string]interface{}, error)
 	CancelSubscription(subscriptionID int) error
 }

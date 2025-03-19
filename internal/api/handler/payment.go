@@ -40,9 +40,18 @@ func (h *Handler) createPayment(c *gin.Context) {
 		return
 	}
 
+	// Сохраняем платеж в базе данных
+	paymentID, err := h.services.Payment.CreatePayment(input.UserID, input.Amount, input.Purpose, "stripe", input.Currency)
+	if err != nil {
+		h.logger.Errorf("Failed to save payment: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	// Возвращаем client_secret для подтверждения оплаты на фронтенде
 	c.JSON(http.StatusOK, gin.H{
 		"client_secret": pi.ClientSecret,
+		"payment_id":    paymentID,
 	})
 }
 
@@ -114,15 +123,16 @@ func (h *Handler) getPaymentStatus(c *gin.Context) {
 
 func (h *Handler) createSubscription(c *gin.Context) {
 	var input struct {
-		UserID int    `json:"user_id"`
-		Plan   string `json:"plan"`
+		UserID    int    `json:"user_id"`
+		Plan      string `json:"plan"`
+		PaymentID int    `json:"payment_id"`
 	}
 	if err := c.BindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	subscriptionID, err := h.services.Subscription.CreateSubscription(input.UserID, input.Plan)
+	subscriptionID, err := h.services.Subscription.CreateSubscription(input.UserID, input.Plan, input.PaymentID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

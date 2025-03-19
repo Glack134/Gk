@@ -30,12 +30,22 @@ func (r *PaymentRepository) GetPaymentDetails(paymentID int) (*PaymentDetails, e
 	return &details, nil
 }
 
-func (r *PaymentRepository) CreatePayment(userID int, amount float64, purpose, paymentMethod string) (int, error) {
+func (r *PaymentRepository) CreatePayment(userID int, amount float64, purpose, paymentMethod, currency string) (int, error) {
 	var paymentID int
-	query := `INSERT INTO payments (user_id, amount, purpose, payment_method, status) 
-	          VALUES ($1, $2, $3, $4, $5) RETURNING id`
-	err := r.db.QueryRow(query, userID, amount, purpose, paymentMethod, "pending").Scan(&paymentID)
+	query := `INSERT INTO payments (user_id, amount, purpose, payment_method, status, currency) 
+              VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
+	err := r.db.QueryRow(query, userID, amount, purpose, paymentMethod, "pending", currency).Scan(&paymentID)
 	return paymentID, err
+}
+
+func (r *PaymentRepository) GetPaymentID(userID int, amount float64, purpose string) (int, error) {
+	var paymentID int
+	query := `SELECT id FROM payments WHERE user_id = $1 AND amount = $2 AND purpose = $3`
+	err := r.db.QueryRow(query, userID, amount, purpose).Scan(&paymentID)
+	if err != nil {
+		return 0, err
+	}
+	return paymentID, nil
 }
 
 func (r *PaymentRepository) GetPaymentStatus(ctx context.Context, paymentID string) (string, error) {
@@ -62,13 +72,13 @@ func NewSubscriptionRepository(db *sqlx.DB) *SubscriptionRepository {
 	return &SubscriptionRepository{db: db}
 }
 
-func (r *SubscriptionRepository) CreateSubscription(userID int, plan string) (int, error) {
+func (r *SubscriptionRepository) CreateSubscription(userID int, plan string, paymentID int) (int, error) {
 	var subscriptionID int
-	query := `INSERT INTO subscriptions (user_id, plan, status, start_date, end_date) 
-              VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	query := `INSERT INTO subscriptions (user_id, plan, status, start_date, end_date, payment_id) 
+              VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
 	startDate := time.Now()
 	endDate := startDate.AddDate(0, 1, 0) // Подписка на 1 месяц
-	err := r.db.QueryRow(query, userID, plan, "active", startDate, endDate).Scan(&subscriptionID)
+	err := r.db.QueryRow(query, userID, plan, "active", startDate, endDate, paymentID).Scan(&subscriptionID)
 	return subscriptionID, err
 }
 

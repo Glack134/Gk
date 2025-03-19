@@ -29,7 +29,7 @@ func NewPaymentService(repo *repository.PaymentRepository) *PaymentService {
 func (s *PaymentService) CreatePayment(userID int, amount float64, purpose, paymentMethod, currency string) (int, error) {
 	// Создаем платеж в Stripe
 	params := &stripe.PaymentIntentParams{
-		Amount:   stripe.Int64(int64(amount * 10)), // Сумма в центах
+		Amount:   stripe.Int64(int64(amount * 100)), // Сумма в центах
 		Currency: stripe.String(strings.ToLower(currency)),
 	}
 	_, err := paymentintent.New(params) // Используем _, если pi не нужна
@@ -38,7 +38,7 @@ func (s *PaymentService) CreatePayment(userID int, amount float64, purpose, paym
 	}
 
 	// Сохраняем платеж в базе данных
-	paymentID, err := s.repo.CreatePayment(userID, amount, purpose, paymentMethod)
+	paymentID, err := s.repo.CreatePayment(userID, amount, purpose, paymentMethod, currency)
 	if err != nil {
 		return 0, err
 	}
@@ -50,12 +50,16 @@ func (s *PaymentService) GetPaymentStatus(ctx context.Context, paymentID string)
 	return s.repo.GetPaymentStatus(ctx, paymentID)
 }
 
+func (s *PaymentService) GetPaymentID(userID int, amount float64, purpose string) (int, error) {
+	return s.repo.GetPaymentID(userID, amount, purpose)
+}
+
 func NewSubscriptionService(repo *repository.SubscriptionRepository) *SubscriptionService {
 	return &SubscriptionService{repo: repo}
 }
 
-func (s *SubscriptionService) CreateSubscription(userID int, plan string) (int, error) {
-	return s.repo.CreateSubscription(userID, plan)
+func (s *SubscriptionService) CreateSubscription(userID int, plan string, paymentID int) (int, error) {
+	return s.repo.CreateSubscription(userID, plan, paymentID)
 }
 
 func (s *SubscriptionService) GetSubscription(userID int) (map[string]interface{}, error) {

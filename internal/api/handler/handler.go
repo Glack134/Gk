@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"net/http"
 	"time"
 
@@ -153,14 +151,9 @@ func (h *Handler) InitRoutes() *gin.Engine {
 			return
 		}
 
-		// Шифруем client_secret с использованием SHA-256
-		hash := sha256.Sum256([]byte(pi.ClientSecret))
-		encryptedSecret := hex.EncodeToString(hash[:])
-
-		// Передаем зашифрованный client_secret в шаблон
+		// Передаем client_secret в шаблон
 		c.HTML(http.StatusOK, "stripe.html", gin.H{
-			"client_secret":    pi.ClientSecret, // Оригинальный client_secret
-			"encrypted_secret": encryptedSecret, // Зашифрованный client_secret
+			"client_secret": pi.ClientSecret, // Используем реальный client_secret
 		})
 	})
 
