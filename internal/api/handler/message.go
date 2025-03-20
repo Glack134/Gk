@@ -9,7 +9,7 @@ import (
 
 func (h *Handler) getMessages(c *gin.Context) {
 	chatIDStr := c.Param("chat_id")
-	h.logger.Infof("Received chat_id: %s", chatIDStr) // Логируем значение chat_id
+	h.logger.Infof("Received chat_id: %s", chatIDStr)
 
 	if chatIDStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "chat_id is required"})

@@ -35,10 +35,21 @@ func (r *ChatRepository) CreateChat(chatName string, userIDs ...int) (int, error
 }
 
 func (r *ChatRepository) AddUserToChat(chatID, userID int) error {
-	query := `INSERT INTO chat_participants (chat_id, user_id) VALUES ($1, $2)`
-	_, err := r.db.Exec(query, chatID, userID)
-	return err
+    var exists bool
+    query := `SELECT EXISTS(SELECT 1 FROM chat_participants WHERE chat_id = \$1 AND user_id = \$2)`
+    err := r.db.QueryRow(query, chatID, userID).Scan(&exists)
+    if err != nil {
+        return err
+    }
+    if exists {
+        return nil // Участник уже существует, ничего не делаем
+    }
+
+    query = `INSERT INTO chat_participants (chat_id, user_id) VALUES (\$1, \$2)`
+    _, err = r.db.Exec(query, chatID, userID)
+    return err
 }
+
 
 func (r *ChatRepository) AddParticipant(chatID, userID int) error {
 	return r.AddUserToChat(chatID, userID)

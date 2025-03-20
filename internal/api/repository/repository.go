@@ -68,6 +68,7 @@ type Payment interface {
 	GetPaymentStatus(paymentID string) (string, error)
 	GetPaymentDetails(paymentID int) (*PaymentDetails, error)
 	UpdatePaymentStatus(paymentID int, status string) error
+	GetPaymentID(userID int, amount float64, purpose string) (int, error)
 }
 
 type Subscription interface {
